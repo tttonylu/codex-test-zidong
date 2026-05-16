@@ -6,8 +6,8 @@ import argparse
 import json
 from typing import Any
 
-from nas_control_plane.services import build_chat_action_plan, build_follow_action_plan, build_probe_action_plan
-from shared.protocol import TaskAssignmentPayload, TaskControlPayload
+from nas_control_plane.services import build_chat_task_payload, build_follow_task_payload, build_probe_task_payload
+from shared.protocol import TaskControlPayload
 from terminal_agent.adapters import NasControlPlaneClient
 
 
@@ -196,67 +196,43 @@ def _add_standard_task_options(parser: argparse.ArgumentParser) -> None:
 
 
 def _handle_create_follow_task(client: NasControlPlaneClient, args: argparse.Namespace) -> dict[str, Any]:
-    parameters = {
-        "target_handle": args.target_handle,
-        "retry_limit": args.retry_limit,
-        "annotate_remark": bool(args.annotate_remark),
-        "action_plan": build_follow_action_plan(
-            target_handle=args.target_handle,
-            annotate_remark=bool(args.annotate_remark),
-        ),
-    }
     return client.create_task(
-        TaskAssignmentPayload(
+        build_follow_task_payload(
             task_id=args.task_id,
             terminal_id=args.terminal_id,
+            target_handle=args.target_handle,
             instance_id=args.instance_id,
-            script_name="follow",
-            parameters=parameters,
             priority=args.priority,
+            retry_limit=args.retry_limit,
+            annotate_remark=bool(args.annotate_remark),
         )
     )
 
 
 def _handle_create_chat_task(client: NasControlPlaneClient, args: argparse.Namespace) -> dict[str, Any]:
-    parameters = {
-        "target_handle": args.target_handle,
-        "retry_limit": args.retry_limit,
-        "annotate_remark": bool(args.annotate_remark),
-        "action_plan": build_chat_action_plan(
-            target_handle=args.target_handle,
-            annotate_remark=bool(args.annotate_remark),
-        ),
-    }
     return client.create_task(
-        TaskAssignmentPayload(
+        build_chat_task_payload(
             task_id=args.task_id,
             terminal_id=args.terminal_id,
+            target_handle=args.target_handle,
             instance_id=args.instance_id,
-            script_name="chat",
-            parameters=parameters,
             priority=args.priority,
+            retry_limit=args.retry_limit,
+            annotate_remark=bool(args.annotate_remark),
         )
     )
 
 
 def _handle_create_probe_task(client: NasControlPlaneClient, args: argparse.Namespace) -> dict[str, Any]:
-    parameters = {
-        "target_url": args.target_url,
-        "retry_limit": args.retry_limit,
-        "annotate_remark": bool(args.annotate_remark),
-        "action_plan": build_probe_action_plan(
-            target_url=args.target_url,
-            annotate_remark=bool(args.annotate_remark),
-        ),
-    }
     return client.create_task(
-        TaskAssignmentPayload(
+        build_probe_task_payload(
             task_id=args.task_id,
             terminal_id=args.terminal_id,
+            target_url=args.target_url,
             instance_id=args.instance_id,
-            script_name="probe",
-            parameters=parameters,
             priority=args.priority,
+            retry_limit=args.retry_limit,
+            annotate_remark=bool(args.annotate_remark),
         )
     )
 
