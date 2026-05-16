@@ -552,7 +552,7 @@ def _render_dashboard_page() -> str:
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>NAS 运营视图</title>
+  <title>NAS \\u8fd0\\u8425\\u89c6\\u56fe</title>
   <style>
     :root {
       --panel: rgba(255, 251, 245, 0.92);
@@ -560,7 +560,6 @@ def _render_dashboard_page() -> str:
       --line: #dccfb8;
       --text: #1f2937;
       --muted: #6b7280;
-      --accent: #b45309;
       --accent-strong: #d97706;
       --warn: #b45309;
       --bad: #b91c1c;
@@ -578,11 +577,7 @@ def _render_dashboard_page() -> str:
       color: var(--text);
       font-family: var(--sans);
     }
-    .shell {
-      max-width: 1520px;
-      margin: 0 auto;
-      padding: 24px;
-    }
+    .shell { max-width: 1560px; margin: 0 auto; padding: 24px; }
     .hero {
       display: flex;
       justify-content: space-between;
@@ -590,56 +585,15 @@ def _render_dashboard_page() -> str:
       gap: 16px;
       margin-bottom: 18px;
     }
-    .hero h1 {
-      margin: 0 0 8px;
-      font-size: 32px;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-    }
-    .hero p {
-      margin: 0;
-      color: var(--muted);
-      max-width: 720px;
-      line-height: 1.6;
-    }
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      justify-content: flex-end;
-    }
+    .hero h1 { margin: 0 0 8px; font-size: 32px; font-weight: 800; }
+    .hero p { margin: 0; color: var(--muted); max-width: 820px; line-height: 1.6; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
     .panel {
       background: var(--panel);
       border: 1px solid rgba(220, 207, 184, 0.9);
       box-shadow: var(--shadow);
       border-radius: var(--radius);
       backdrop-filter: blur(14px);
-    }
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-    .summary-card {
-      padding: 16px 18px;
-      min-height: 108px;
-    }
-    .summary-card .label {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-    .summary-card .value {
-      font-size: 30px;
-      font-weight: 800;
-    }
-    .summary-card .meta {
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.5;
     }
     .panel-head {
       display: flex;
@@ -648,38 +602,30 @@ def _render_dashboard_page() -> str:
       gap: 12px;
       padding: 16px 18px 0;
     }
-    .panel-head h2, .panel-head h3 {
-      margin: 0;
-      font-size: 18px;
+    .panel-head h2, .panel-head h3 { margin: 0; font-size: 18px; }
+    .panel-head .sub { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
     }
-    .panel-head .sub {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-    .creation-grid, .filters-grid {
+    .summary-card { padding: 16px 18px; min-height: 108px; }
+    .summary-card .label { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .summary-card .value { font-size: 30px; font-weight: 800; }
+    .summary-card .meta { margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .creation-grid, .filters-grid, .log-filters, .detail-grid {
       display: grid;
       gap: 10px;
       padding: 16px;
     }
-    .creation-grid {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
-    .filters-grid {
-      grid-template-columns: 1.2fr 1fr 1fr auto auto;
-    }
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .field-wide {
-      grid-column: span 2;
-    }
-    .field label {
-      font-size: 12px;
-      color: var(--muted);
-    }
+    .creation-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .filters-grid { grid-template-columns: 1.2fr 1fr 1fr auto auto; }
+    .log-filters { grid-template-columns: 1fr 1fr auto auto; padding-top: 8px; }
+    .detail-grid { grid-template-columns: 1fr 1fr; padding: 0; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-wide { grid-column: span 2; }
+    .field label { font-size: 12px; color: var(--muted); }
     input, select, button, textarea {
       font: inherit;
       border-radius: 12px;
@@ -687,231 +633,85 @@ def _render_dashboard_page() -> str:
       background: var(--panel-strong);
       color: var(--text);
     }
-    input, select, textarea {
-      width: 100%;
-      padding: 10px 12px;
-    }
-    textarea {
-      resize: vertical;
-      min-height: 72px;
-    }
+    input, select, textarea { width: 100%; padding: 10px 12px; }
+    textarea { resize: vertical; min-height: 72px; }
     .toggle {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      min-height: 42px;
-      padding: 0 12px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: var(--panel-strong);
+      display: flex; gap: 8px; align-items: center; min-height: 42px;
+      padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-strong);
     }
-    .toggle input {
-      width: auto;
-      margin: 0;
-    }
+    .toggle input { width: auto; margin: 0; }
     button {
       padding: 10px 14px;
       cursor: pointer;
       transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
     }
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 18px rgba(120, 53, 15, 0.12);
-    }
-    button.primary {
-      background: linear-gradient(135deg, var(--accent-strong) 0%, #f59e0b 100%);
-      color: #fff;
-      border-color: var(--accent-strong);
-    }
-    button.ghost {
-      background: rgba(255, 255, 255, 0.8);
-    }
-    button.warn {
-      background: #fff7ed;
-      border-color: #fdba74;
-      color: var(--warn);
-    }
-    button.danger {
-      background: #fef2f2;
-      border-color: #fca5a5;
-      color: var(--bad);
-    }
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.58;
-      transform: none;
-      box-shadow: none;
-    }
-    .creation-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      padding: 0 16px 16px;
-    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(120, 53, 15, 0.12); }
+    button.primary { background: linear-gradient(135deg, var(--accent-strong) 0%, #f59e0b 100%); color: #fff; border-color: var(--accent-strong); }
+    button.ghost { background: rgba(255, 255, 255, 0.8); }
+    button.warn { background: #fff7ed; border-color: #fdba74; color: var(--warn); }
+    button.danger { background: #fef2f2; border-color: #fca5a5; color: var(--bad); }
+    button:disabled { cursor: not-allowed; opacity: 0.58; transform: none; box-shadow: none; }
+    .creation-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 0 16px 16px; }
     .feedback {
-      margin: 0 16px 16px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      font-size: 13px;
-      line-height: 1.5;
-      display: none;
+      margin: 0 16px 16px; padding: 12px 14px; border-radius: 14px;
+      font-size: 13px; line-height: 1.5; display: none;
     }
     .feedback.show { display: block; }
-    .feedback.info {
-      background: #eff6ff;
-      color: #1d4ed8;
-      border: 1px solid #bfdbfe;
-    }
-    .feedback.success {
-      background: #ecfdf5;
-      color: #166534;
-      border: 1px solid #a7f3d0;
-    }
-    .feedback.error {
-      background: #fef2f2;
-      color: #b91c1c;
-      border: 1px solid #fecaca;
-    }
+    .feedback.info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .feedback.success { background: #ecfdf5; color: #166534; border: 1px solid #a7f3d0; }
+    .feedback.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
     .layout {
       display: grid;
-      grid-template-columns: 1.55fr 1fr;
+      grid-template-columns: 1.45fr 1fr;
       gap: 18px;
       align-items: start;
       margin-top: 18px;
     }
-    .table-wrap {
-      overflow: auto;
-      padding: 14px 16px 16px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
+    .stack { display: grid; gap: 18px; }
+    .table-wrap { overflow: auto; padding: 14px 16px 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td {
-      text-align: left;
-      padding: 10px 8px;
-      border-bottom: 1px solid rgba(220, 207, 184, 0.65);
-      vertical-align: top;
+      text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(220, 207, 184, 0.65); vertical-align: top;
     }
     th {
-      position: sticky;
-      top: 0;
-      background: rgba(255, 250, 243, 0.98);
-      z-index: 1;
-      color: var(--muted);
-      font-weight: 600;
-      white-space: nowrap;
+      position: sticky; top: 0; background: rgba(255, 250, 243, 0.98); z-index: 1; color: var(--muted); font-weight: 600; white-space: nowrap;
     }
-    tr.task-row {
-      cursor: pointer;
-    }
-    tr.task-row:hover {
-      background: rgba(245, 158, 11, 0.08);
-    }
-    tr.task-row.active {
-      background: rgba(217, 119, 6, 0.12);
-    }
+    tr.task-row, tr.terminal-row, tr.log-row { cursor: pointer; }
+    tr.task-row:hover, tr.terminal-row:hover, tr.log-row:hover { background: rgba(245, 158, 11, 0.08); }
+    tr.task-row.active, tr.terminal-row.active, tr.log-row.active { background: rgba(217, 119, 6, 0.12); }
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; white-space: nowrap;
     }
     .badge.pending { background: #f3f4f6; color: #4b5563; }
     .badge.running { background: #dbeafe; color: #1d4ed8; }
     .badge.good { background: #dcfce7; color: #166534; }
     .badge.warn { background: #fff7ed; color: #b45309; }
     .badge.bad { background: #fee2e2; color: #b91c1c; }
-    .detail-panel {
-      padding: 16px;
-      position: sticky;
-      top: 18px;
-    }
-    .detail-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 12px;
-      margin-bottom: 16px;
-    }
+    .detail-panel { padding: 16px; position: sticky; top: 18px; }
     .kv {
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.62);
-      border-radius: 14px;
-      border: 1px solid rgba(220, 207, 184, 0.75);
+      padding: 12px; background: rgba(255, 255, 255, 0.62);
+      border-radius: 14px; border: 1px solid rgba(220, 207, 184, 0.75);
     }
-    .kv .k {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .kv .v {
-      font-size: 14px;
-      font-weight: 600;
-      word-break: break-word;
-    }
-    .detail-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-    .detail-section {
-      margin-top: 16px;
-    }
-    .detail-section h3 {
-      margin: 0 0 10px;
-      font-size: 15px;
-    }
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
+    .kv .k { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .kv .v { font-size: 14px; font-weight: 600; word-break: break-word; }
+    .detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .detail-section { margin-top: 16px; }
+    .detail-section h3 { margin: 0 0 10px; font-size: 15px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
     .chip {
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(217, 119, 6, 0.08);
-      color: #92400e;
-      font-size: 12px;
-      font-weight: 700;
+      padding: 6px 10px; border-radius: 999px; background: rgba(217, 119, 6, 0.08);
+      color: #92400e; font-size: 12px; font-weight: 700;
     }
-    .timeline {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .timeline { display: flex; flex-direction: column; gap: 8px; }
     .timeline-item {
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.66);
-      border: 1px solid rgba(220, 207, 184, 0.75);
-      font-size: 13px;
-      line-height: 1.55;
+      padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(220, 207, 184, 0.75); font-size: 13px; line-height: 1.55;
     }
-    .timeline-item .meta {
-      color: var(--muted);
-      font-size: 12px;
-      margin-top: 4px;
-    }
-    .terminal-panel {
-      margin-top: 18px;
-    }
-    .notice {
-      color: var(--muted);
-      font-size: 13px;
-      padding: 16px;
-      line-height: 1.6;
-    }
-    .code {
-      font-family: var(--mono);
-      font-size: 12px;
-    }
+    .timeline-item .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .notice { color: var(--muted); font-size: 13px; padding: 16px; line-height: 1.6; }
+    .code { font-family: var(--mono); font-size: 12px; }
+    .split-detail { display: grid; gap: 18px; }
     @media (max-width: 1240px) {
       .creation-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -921,15 +721,9 @@ def _render_dashboard_page() -> str:
     @media (max-width: 760px) {
       .shell { padding: 14px; }
       .hero { flex-direction: column; }
-      .summary-grid, .creation-grid, .filters-grid, .detail-grid, .detail-actions {
-        grid-template-columns: 1fr;
-      }
-      .field-wide {
-        grid-column: auto;
-      }
-      .creation-actions {
-        flex-direction: column;
-      }
+      .summary-grid, .creation-grid, .filters-grid, .detail-grid, .detail-actions, .log-filters { grid-template-columns: 1fr; }
+      .field-wide { grid-column: auto; }
+      .creation-actions { flex-direction: column; }
     }
   </style>
 </head>
@@ -937,32 +731,32 @@ def _render_dashboard_page() -> str:
   <div class="shell">
     <section class="hero">
       <div>
-        <h1>NAS 运营视图</h1>
-        <p>用于查看终端状态、筛选任务、分析失败原因，并直接创建、取消或重试任务。当前页面直接复用现有 NAS control API，不增加额外中间层。</p>
+        <h1>NAS \\u8fd0\\u8425\\u89c6\\u56fe</h1>
+        <p>\\u7528\\u4e8e\\u67e5\\u770b\\u7ec8\\u7aef\\u72b6\\u6001\\u3001\\u7b5b\\u9009\\u4efb\\u52a1\\u3001\\u5206\\u6790\\u5931\\u8d25\\u539f\\u56e0\\uff0c\\u5e76\\u76f4\\u63a5\\u521b\\u5efa\\u3001\\u53d6\\u6d88\\u6216\\u91cd\\u8bd5\\u4efb\\u52a1\\u3002\\u5f53\\u524d\\u9875\\u9762\\u76f4\\u63a5\\u590d\\u7528\\u73b0\\u6709 NAS control API\\uff0c\\u4e0d\\u589e\\u52a0\\u989d\\u5916\\u4e2d\\u95f4\\u5c42\\u3002</p>
       </div>
       <div class="toolbar">
-        <button class="ghost" id="refresh-all">刷新全部</button>
-        <button class="primary" id="auto-refresh-toggle">自动刷新：开</button>
+        <button class="ghost" id="refresh-all">\\u5237\\u65b0\\u5168\\u90e8</button>
+        <button class="primary" id="auto-refresh-toggle">\\u81ea\\u52a8\\u5237\\u65b0\\uff1a\\u5f00</button>
       </div>
     </section>
 
     <section class="summary-grid" id="summary-grid">
-      <div class="panel summary-card"><div class="label">终端总数</div><div class="value">-</div></div>
-      <div class="panel summary-card"><div class="label">任务总数</div><div class="value">-</div></div>
-      <div class="panel summary-card"><div class="label">失败任务</div><div class="value">-</div></div>
-      <div class="panel summary-card"><div class="label">日志总数</div><div class="value">-</div></div>
+      <div class="panel summary-card"><div class="label">\\u7ec8\\u7aef\\u603b\\u6570</div><div class="value">-</div></div>
+      <div class="panel summary-card"><div class="label">\\u4efb\\u52a1\\u603b\\u6570</div><div class="value">-</div></div>
+      <div class="panel summary-card"><div class="label">\\u5931\\u8d25\\u4efb\\u52a1</div><div class="value">-</div></div>
+      <div class="panel summary-card"><div class="label">\\u65e5\\u5fd7\\u603b\\u6570</div><div class="value">-</div></div>
     </section>
 
     <section class="panel">
       <div class="panel-head">
         <div>
-          <h2>创建任务</h2>
-          <div class="sub">支持 `follow`、`chat`、`probe` 三类任务，并在前端按统一规则构造 `action_plan` 后提交到 `/tasks`。</div>
+          <h2>\\u521b\\u5efa\\u4efb\\u52a1</h2>
+          <div class="sub">\\u652f\\u6301 <code>follow</code>\\u3001<code>chat</code>\\u3001<code>probe</code> \\u4e09\\u7c7b\\u4efb\\u52a1\\uff0c\\u5e76\\u5728\\u524d\\u7aef\\u6309\\u7edf\\u4e00\\u89c4\\u5219\\u6784\\u9020 <code>action_plan</code> \\u540e\\u63d0\\u4ea4\\u5230 <code>/tasks</code>\\u3002</div>
         </div>
       </div>
       <div class="creation-grid">
         <div class="field">
-          <label for="create-script-name">任务类型</label>
+          <label for="create-script-name">\\u4efb\\u52a1\\u7c7b\\u578b</label>
           <select id="create-script-name">
             <option value="follow">follow</option>
             <option value="chat">chat</option>
@@ -970,16 +764,16 @@ def _render_dashboard_page() -> str:
           </select>
         </div>
         <div class="field">
-          <label for="create-task-id">任务 ID</label>
-          <input id="create-task-id" placeholder="留空则自动生成" />
+          <label for="create-task-id">\\u4efb\\u52a1 ID</label>
+          <input id="create-task-id" placeholder="\\u7559\\u7a7a\\u5219\\u81ea\\u52a8\\u751f\\u6210" />
         </div>
         <div class="field">
           <label for="create-terminal-id">terminal_id</label>
-          <input id="create-terminal-id" placeholder="例如 terminal-a" />
+          <input id="create-terminal-id" placeholder="\\u4f8b\\u5982 terminal-a" />
         </div>
         <div class="field">
           <label for="create-instance-id">instance_id</label>
-          <input id="create-instance-id" placeholder="例如 bb-follow-1" />
+          <input id="create-instance-id" placeholder="\\u4f8b\\u5982 bb-follow-1" />
         </div>
         <div class="field">
           <label for="create-priority">priority</label>
@@ -990,77 +784,77 @@ def _render_dashboard_page() -> str:
           <input id="create-retry-limit" type="number" min="0" value="0" />
         </div>
         <div class="field field-wide">
-          <label for="create-target-value" id="create-target-label">目标账号</label>
-          <input id="create-target-value" placeholder="例如 matrix_ops" />
+          <label for="create-target-value" id="create-target-label">\\u76ee\\u6807\\u8d26\\u53f7</label>
+          <input id="create-target-value" placeholder="\\u4f8b\\u5982 matrix_ops" />
         </div>
         <div class="field">
           <label for="create-requested-by">requested_by</label>
           <input id="create-requested-by" value="dashboard" />
         </div>
         <div class="field">
-          <label for="create-annotate-toggle">附加备注</label>
+          <label for="create-annotate-toggle">\\u9644\\u52a0\\u5907\\u6ce8</label>
           <div class="toggle">
             <input id="create-annotate-toggle" type="checkbox" />
-            <span>创建任务时附带 remark</span>
+            <span>\\u521b\\u5efa\\u4efb\\u52a1\\u65f6\\u9644\\u5e26 remark</span>
           </div>
         </div>
         <div class="field field-wide">
-          <label for="create-note">创建备注</label>
-          <textarea id="create-note" placeholder="可选。用于记录操作背景，不会覆盖 action_plan。"></textarea>
+          <label for="create-note">\\u521b\\u5efa\\u5907\\u6ce8</label>
+          <textarea id="create-note" placeholder="\\u53ef\\u9009\\u3002\\u7528\\u4e8e\\u8bb0\\u5f55\\u64cd\\u4f5c\\u80cc\\u666f\\uff0c\\u4e0d\\u4f1a\\u8986\\u76d6 action_plan\\u3002"></textarea>
         </div>
       </div>
       <div id="create-feedback" class="feedback"></div>
       <div class="creation-actions">
-        <button class="ghost" id="create-reset-btn">重置表单</button>
-        <button class="primary" id="create-task-btn">提交任务</button>
+        <button class="ghost" id="create-reset-btn">\\u91cd\\u7f6e\\u8868\\u5355</button>
+        <button class="primary" id="create-task-btn">\\u63d0\\u4ea4\\u4efb\\u52a1</button>
       </div>
     </section>
 
     <section class="panel" style="margin-top: 18px;">
       <div class="filters-grid">
-        <input id="filter-terminal" placeholder="按 terminal_id 筛选" />
+        <input id="filter-terminal" placeholder="\\u6309 terminal_id \\u7b5b\\u9009" />
         <select id="filter-status">
-          <option value="">全部任务状态</option>
-          <option value="queued">queued / 排队中</option>
-          <option value="dispatched">dispatched / 已派发</option>
-          <option value="running">running / 执行中</option>
-          <option value="completed">completed / 已完成</option>
-          <option value="failed">failed / 失败</option>
-          <option value="cancelled">cancelled / 已取消</option>
+          <option value="">\\u5168\\u90e8\\u4efb\\u52a1\\u72b6\\u6001</option>
+          <option value="queued">queued / \\u6392\\u961f\\u4e2d</option>
+          <option value="dispatched">dispatched / \\u5df2\\u6d3e\\u53d1</option>
+          <option value="running">running / \\u6267\\u884c\\u4e2d</option>
+          <option value="completed">completed / \\u5df2\\u5b8c\\u6210</option>
+          <option value="failed">failed / \\u5931\\u8d25</option>
+          <option value="cancelled">cancelled / \\u5df2\\u53d6\\u6d88</option>
         </select>
         <select id="filter-script">
-          <option value="">全部脚本类型</option>
+          <option value="">\\u5168\\u90e8\\u811a\\u672c\\u7c7b\\u578b</option>
           <option value="follow">follow</option>
           <option value="chat">chat</option>
           <option value="probe">probe</option>
           <option value="extract">extract</option>
         </select>
-        <button class="ghost" id="apply-filters">应用筛选</button>
-        <button class="ghost" id="clear-filters">清空筛选</button>
+        <button class="ghost" id="apply-filters">\\u5e94\\u7528\\u7b5b\\u9009</button>
+        <button class="ghost" id="clear-filters">\\u6e05\\u7a7a\\u7b5b\\u9009</button>
       </div>
     </section>
 
     <section class="layout">
-      <div>
+      <div class="stack">
         <section class="panel">
           <div class="panel-head">
             <div>
-              <h2>任务列表</h2>
-              <div class="sub" id="task-list-meta">正在加载</div>
+              <h2>\\u4efb\\u52a1\\u5217\\u8868</h2>
+              <div class="sub" id="task-list-meta">\\u6b63\\u5728\\u52a0\\u8f7d</div>
             </div>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>任务 ID</th>
-                  <th>终端</th>
-                  <th>脚本</th>
-                  <th>状态</th>
-                  <th>优先级</th>
-                  <th>尝试</th>
-                  <th>最后错误码</th>
-                  <th>创建时间</th>
+                  <th>\\u4efb\\u52a1 ID</th>
+                  <th>\\u7ec8\\u7aef</th>
+                  <th>\\u811a\\u672c</th>
+                  <th>\\u72b6\\u6001</th>
+                  <th>\\u4f18\\u5148\\u7ea7</th>
+                  <th>\\u5c1d\\u8bd5</th>
+                  <th>\\u6700\\u540e\\u9519\\u8bef\\u7801</th>
+                  <th>\\u521b\\u5efa\\u65f6\\u95f4</th>
                 </tr>
               </thead>
               <tbody id="task-table-body"></tbody>
@@ -1068,58 +862,127 @@ def _render_dashboard_page() -> str:
           </div>
         </section>
 
-        <section class="panel terminal-panel">
+        <section class="panel">
           <div class="panel-head">
             <div>
-              <h2>终端概览</h2>
-              <div class="sub">用于快速判断在线情况与负载分布。</div>
+              <h2>\\u7ec8\\u7aef\\u6982\\u89c8</h2>
+              <div class="sub">\\u70b9\\u51fb\\u7ec8\\u7aef\\u53ef\\u67e5\\u770b\\u5b9e\\u4f8b\\u3001\\u5fc3\\u8df3\\u4e0e\\u76f8\\u5173\\u65e5\\u5fd7\\u3002</div>
             </div>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>终端 ID</th>
-                  <th>主机名</th>
-                  <th>状态</th>
-                  <th>操作员</th>
-                  <th>版本</th>
-                  <th>最后心跳</th>
+                  <th>\\u7ec8\\u7aef ID</th>
+                  <th>\\u4e3b\\u673a\\u540d</th>
+                  <th>\\u72b6\\u6001</th>
+                  <th>\\u64cd\\u4f5c\\u5458</th>
+                  <th>\\u7248\\u672c</th>
+                  <th>\\u6700\\u540e\\u5fc3\\u8df3</th>
                 </tr>
               </thead>
               <tbody id="terminal-table-body"></tbody>
             </table>
           </div>
         </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>\\u65e5\\u5fd7\\u67e5\\u8be2</h2>
+              <div class="sub" id="log-list-meta">\\u9ed8\\u8ba4\\u663e\\u793a\\u5168\\u90e8\\u65e5\\u5fd7\\uff0c\\u4e5f\\u53ef\\u7ed3\\u5408\\u7ec8\\u7aef\\u6216 level \\u7b5b\\u9009\\u3002</div>
+            </div>
+          </div>
+          <div class="log-filters">
+            <input id="log-terminal-filter" placeholder="\\u6309 terminal_id \\u7b5b\\u9009\\u65e5\\u5fd7" />
+            <select id="log-level-filter">
+              <option value="">\\u5168\\u90e8 level</option>
+              <option value="info">info</option>
+              <option value="warning">warning</option>
+              <option value="error">error</option>
+            </select>
+            <button class="ghost" id="apply-log-filters">\\u5237\\u65b0\\u65e5\\u5fd7</button>
+            <button class="ghost" id="clear-log-filters">\\u6e05\\u7a7a\\u65e5\\u5fd7\\u7b5b\\u9009</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>log_id</th>
+                  <th>terminal</th>
+                  <th>level</th>
+                  <th>message</th>
+                  <th>task_id</th>
+                  <th>emitted_at</th>
+                </tr>
+              </thead>
+              <tbody id="log-table-body"></tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
-      <aside class="panel detail-panel">
-        <div class="panel-head">
-          <div>
-            <h2>任务详情</h2>
-            <div class="sub" id="detail-subtitle">请选择左侧任务</div>
+      <aside class="split-detail">
+        <section class="panel detail-panel">
+          <div class="panel-head">
+            <div>
+              <h2>\\u4efb\\u52a1\\u8be6\\u60c5</h2>
+              <div class="sub" id="detail-subtitle">\\u8bf7\\u9009\\u62e9\\u5de6\\u4fa7\\u4efb\\u52a1</div>
+            </div>
           </div>
-        </div>
+          <div style="margin-top: 14px;">
+            <textarea id="control-reason" rows="3" placeholder="\\u63a7\\u5236\\u5907\\u6ce8\\u3002\\u7559\\u7a7a\\u65f6\\u4f1a\\u4f7f\\u7528\\u9ed8\\u8ba4\\u539f\\u56e0\\u3002"></textarea>
+          </div>
+          <div class="detail-actions">
+            <button class="warn" id="retry-task-btn" disabled>\\u91cd\\u8bd5\\u4efb\\u52a1</button>
+            <button class="danger" id="cancel-task-btn" disabled>\\u53d6\\u6d88\\u4efb\\u52a1</button>
+          </div>
+          <div id="detail-body" class="notice">\\u8bf7\\u9009\\u62e9\\u4e00\\u4e2a\\u4efb\\u52a1\\u67e5\\u770b\\u8bca\\u65ad\\u3001\\u52a8\\u4f5c\\u8ba1\\u5212\\u3001\\u6267\\u884c\\u5c1d\\u8bd5\\u548c\\u4e8b\\u4ef6\\u65f6\\u95f4\\u7ebf\\u3002</div>
+        </section>
 
-        <div style="margin-top: 14px;">
-          <textarea id="control-reason" rows="3" placeholder="控制备注。留空时会使用默认原因。"></textarea>
-        </div>
-        <div class="detail-actions">
-          <button class="warn" id="retry-task-btn" disabled>重试任务</button>
-          <button class="danger" id="cancel-task-btn" disabled>取消任务</button>
-        </div>
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>\\u7ec8\\u7aef\\u8be6\\u60c5</h2>
+              <div class="sub" id="terminal-detail-subtitle">\\u8bf7\\u9009\\u62e9\\u5de6\\u4fa7\\u7ec8\\u7aef</div>
+            </div>
+          </div>
+          <div id="terminal-detail-body" class="notice">\\u8bf7\\u9009\\u62e9\\u4e00\\u4e2a\\u7ec8\\u7aef\\u67e5\\u770b\\u5fc3\\u8df3\\u3001\\u5b9e\\u4f8b\\u548c\\u5173\\u8054\\u65e5\\u5fd7\\u3002</div>
+        </section>
 
-        <div id="detail-body" class="notice">请选择一个任务查看诊断、动作计划、执行尝试和事件时间线。</div>
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>\\u65e5\\u5fd7\\u8be6\\u60c5</h2>
+              <div class="sub" id="log-detail-subtitle">\\u8bf7\\u9009\\u62e9\\u4e00\\u6761\\u65e5\\u5fd7</div>
+            </div>
+          </div>
+          <div id="log-detail-body" class="notice">\\u53ef\\u67e5\\u770b\\u65e5\\u5fd7 message\\u3001run_id \\u548c details \\u5185\\u5bb9\\u3002</div>
+        </section>
       </aside>
     </section>
   </div>
 
   <script>
+    const TEXT = {
+      dashboard: "\\u8fd0\\u8425\\u89c6\\u56fe",
+      taskSelect: "\\u8bf7\\u9009\\u62e9\\u5de6\\u4fa7\\u4efb\\u52a1",
+      terminalSelect: "\\u8bf7\\u9009\\u62e9\\u5de6\\u4fa7\\u7ec8\\u7aef",
+      logSelect: "\\u8bf7\\u9009\\u62e9\\u4e00\\u6761\\u65e5\\u5fd7",
+      requestFailed: "\\u8bf7\\u6c42\\u5931\\u8d25",
+      noTask: "\\u5f53\\u524d\\u6ca1\\u6709\\u5339\\u914d\\u7684\\u4efb\\u52a1\\u3002",
+      noTerminal: "\\u5f53\\u524d\\u6ca1\\u6709\\u7ec8\\u7aef\\u6ce8\\u518c\\u8bb0\\u5f55\\u3002",
+      noLogs: "\\u5f53\\u524d\\u6ca1\\u6709\\u5339\\u914d\\u7684\\u65e5\\u5fd7\\u3002",
+      noInstances: "\\u6682\\u65e0\\u5b9e\\u4f8b\\u8bb0\\u5f55",
+      retryReason: "\\u8fd0\\u8425\\u9875\\u53d1\\u8d77\\u91cd\\u8bd5",
+      cancelReason: "\\u8fd0\\u8425\\u9875\\u53d1\\u8d77\\u53d6\\u6d88",
+    };
+
     const state = {
       selectedTaskId: null,
-      selectedReport: null,
+      selectedTerminalId: null,
+      selectedLogId: null,
       autoRefresh: true,
-      timerId: null,
     };
 
     function statusBadgeKind(status) {
@@ -1132,27 +995,27 @@ def _render_dashboard_page() -> str:
 
     function statusText(status) {
       const map = {
-        queued: "排队中",
-        dispatched: "已派发",
-        running: "执行中",
-        completed: "已完成",
-        failed: "失败",
-        cancelled: "已取消",
-        online: "在线",
-        offline: "离线",
+        queued: "\\u6392\\u961f\\u4e2d",
+        dispatched: "\\u5df2\\u6d3e\\u53d1",
+        running: "\\u6267\\u884c\\u4e2d",
+        completed: "\\u5df2\\u5b8c\\u6210",
+        failed: "\\u5931\\u8d25",
+        cancelled: "\\u5df2\\u53d6\\u6d88",
+        online: "\\u5728\\u7ebf",
+        offline: "\\u79bb\\u7ebf",
       };
       return map[status] || status || "-";
     }
 
     function healthText(health) {
       const map = {
-        healthy: "健康",
-        retry_pending: "等待重试",
-        retryable_failure: "可重试失败",
-        terminal_failure: "终态失败",
-        cancelled: "已取消",
-        in_progress: "进行中",
-        pending: "待处理",
+        healthy: "\\u5065\\u5eb7",
+        retry_pending: "\\u7b49\\u5f85\\u91cd\\u8bd5",
+        retryable_failure: "\\u53ef\\u91cd\\u8bd5\\u5931\\u8d25",
+        terminal_failure: "\\u7ec8\\u6001\\u5931\\u8d25",
+        cancelled: "\\u5df2\\u53d6\\u6d88",
+        in_progress: "\\u8fdb\\u884c\\u4e2d",
+        pending: "\\u5f85\\u5904\\u7406",
       };
       return map[health] || health || "-";
     }
@@ -1173,11 +1036,15 @@ def _render_dashboard_page() -> str:
       return date.toLocaleString("zh-CN", { hour12: false });
     }
 
+    function jsonBlock(value) {
+      return "<pre class=\\"code\\">" + escapeHtml(JSON.stringify(value ?? {}, null, 2)) + "</pre>";
+    }
+
     async function getJson(path, options) {
       const response = await fetch(path, options);
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload.error || ("请求失败: " + response.status));
+        throw new Error(payload.error || (TEXT.requestFailed + ": " + response.status));
       }
       return payload;
     }
@@ -1193,58 +1060,37 @@ def _render_dashboard_page() -> str:
       return query.toString() ? "/tasks?" + query.toString() : "/tasks";
     }
 
+    function currentLogQuery() {
+      const query = new URLSearchParams();
+      const terminalId = document.getElementById("log-terminal-filter").value.trim();
+      const level = document.getElementById("log-level-filter").value;
+      if (terminalId) query.set("terminal_id", terminalId);
+      if (level) query.set("level", level);
+      return query.toString() ? "/logs?" + query.toString() : "/logs";
+    }
+
     function generateTaskId(scriptName) {
       return "task-" + scriptName + "-" + Date.now();
     }
 
     function buildActionPlan(scriptName, targetValue, annotateRemark) {
       if (scriptName === "follow") {
-        const plan = [
-          {
-            name: "navigate_profile",
-            kind: "navigate",
-            params: { target_url: "https://x.com/" + targetValue, queue: true },
-          },
-        ];
+        const plan = [{ name: "navigate_profile", kind: "navigate", params: { target_url: "https://x.com/" + targetValue, queue: true } }];
         if (annotateRemark) {
-          plan.push({
-            name: "annotate_follow_target",
-            kind: "annotate",
-            params: { remark: "follow:" + targetValue },
-          });
+          plan.push({ name: "annotate_follow_target", kind: "annotate", params: { remark: "follow:" + targetValue } });
         }
         return plan;
       }
       if (scriptName === "chat") {
-        const plan = [
-          {
-            name: "navigate_compose",
-            kind: "navigate",
-            params: { target_url: "https://x.com/messages/compose?recipient_id=" + targetValue, queue: true },
-          },
-        ];
+        const plan = [{ name: "navigate_compose", kind: "navigate", params: { target_url: "https://x.com/messages/compose?recipient_id=" + targetValue, queue: true } }];
         if (annotateRemark) {
-          plan.push({
-            name: "annotate_chat_target",
-            kind: "annotate",
-            params: { remark: "chat:" + targetValue },
-          });
+          plan.push({ name: "annotate_chat_target", kind: "annotate", params: { remark: "chat:" + targetValue } });
         }
         return plan;
       }
-      const plan = [
-        {
-          name: "navigate_probe_target",
-          kind: "navigate",
-          params: { target_url: targetValue, queue: true },
-        },
-      ];
+      const plan = [{ name: "navigate_probe_target", kind: "navigate", params: { target_url: targetValue, queue: true } }];
       if (annotateRemark) {
-        plan.push({
-          name: "annotate_probe_target",
-          kind: "annotate",
-          params: { remark: "probe:" + targetValue },
-        });
+        plan.push({ name: "annotate_probe_target", kind: "annotate", params: { remark: "probe:" + targetValue } });
       }
       return plan;
     }
@@ -1261,40 +1107,17 @@ def _render_dashboard_page() -> str:
       const requestedBy = document.getElementById("create-requested-by").value.trim() || "dashboard";
       const note = document.getElementById("create-note").value.trim();
 
-      if (!terminalId) {
-        throw new Error("terminal_id 不能为空");
-      }
-      if (!targetValue) {
-        throw new Error(scriptName === "probe" ? "目标 URL 不能为空" : "目标账号不能为空");
-      }
+      if (!terminalId) throw new Error("terminal_id \\u4e0d\\u80fd\\u4e3a\\u7a7a");
+      if (!targetValue) throw new Error(scriptName === "probe" ? "\\u76ee\\u6807 URL \\u4e0d\\u80fd\\u4e3a\\u7a7a" : "\\u76ee\\u6807\\u8d26\\u53f7\\u4e0d\\u80fd\\u4e3a\\u7a7a");
 
-      const parameters = {
-        retry_limit: retryLimit,
-        annotate_remark: annotateRemark,
-        action_plan: buildActionPlan(scriptName, targetValue, annotateRemark),
-      };
-      if (scriptName === "probe") {
-        parameters.target_url = targetValue;
-      } else {
-        parameters.target_handle = targetValue;
-      }
-      if (note) {
-        parameters.dashboard_note = note;
-      }
-      if (requestedBy) {
-        parameters.requested_by = requestedBy;
-      }
+      const parameters = { retry_limit: retryLimit, annotate_remark: annotateRemark, action_plan: buildActionPlan(scriptName, targetValue, annotateRemark) };
+      if (scriptName === "probe") parameters.target_url = targetValue;
+      else parameters.target_handle = targetValue;
+      if (note) parameters.dashboard_note = note;
+      if (requestedBy) parameters.requested_by = requestedBy;
 
-      const payload = {
-        task_id: taskId,
-        terminal_id: terminalId,
-        script_name: scriptName,
-        parameters,
-        priority,
-      };
-      if (instanceIdRaw) {
-        payload.instance_id = instanceIdRaw;
-      }
+      const payload = { task_id: taskId, terminal_id: terminalId, script_name: scriptName, parameters, priority };
+      if (instanceIdRaw) payload.instance_id = instanceIdRaw;
       return payload;
     }
 
@@ -1315,30 +1138,30 @@ def _render_dashboard_page() -> str:
       const targetLabel = document.getElementById("create-target-label");
       const targetInput = document.getElementById("create-target-value");
       if (scriptName === "probe") {
-        targetLabel.textContent = "目标 URL";
-        targetInput.placeholder = "例如 https://x.com/home";
+        targetLabel.textContent = "\\u76ee\\u6807 URL";
+        targetInput.placeholder = "\\u4f8b\\u5982 https://x.com/home";
       } else if (scriptName === "chat") {
-        targetLabel.textContent = "目标账号 / recipient_id";
-        targetInput.placeholder = "例如 risk_user";
+        targetLabel.textContent = "\\u76ee\\u6807\\u8d26\\u53f7 / recipient_id";
+        targetInput.placeholder = "\\u4f8b\\u5982 risk_user";
       } else {
-        targetLabel.textContent = "目标账号";
-        targetInput.placeholder = "例如 matrix_ops";
+        targetLabel.textContent = "\\u76ee\\u6807\\u8d26\\u53f7";
+        targetInput.placeholder = "\\u4f8b\\u5982 matrix_ops";
       }
       if (!document.getElementById("create-task-id").value.trim()) {
-        document.getElementById("create-task-id").placeholder = "留空则自动生成，例如 " + generateTaskId(scriptName);
+        document.getElementById("create-task-id").placeholder = "\\u7559\\u7a7a\\u5219\\u81ea\\u52a8\\u751f\\u6210\\uff0c\\u4f8b\\u5982 " + generateTaskId(scriptName);
       }
     }
 
     async function createTaskFromForm() {
       try {
         const payload = buildTaskPayloadFromForm();
-        setCreateFeedback("正在创建任务 " + payload.task_id + " ...", "info");
+        setCreateFeedback("\\u6b63\\u5728\\u521b\\u5efa\\u4efb\\u52a1 " + payload.task_id + " ...", "info");
         const task = await getJson("/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        setCreateFeedback("任务已创建: " + task.task_id, "success");
+        setCreateFeedback("\\u4efb\\u52a1\\u5df2\\u521b\\u5efa: " + task.task_id, "success");
         state.selectedTaskId = task.task_id;
         document.getElementById("create-task-id").value = "";
         await refreshAll();
@@ -1364,23 +1187,37 @@ def _render_dashboard_page() -> str:
     }
 
     async function refreshAll() {
-      const [summary, terminals, tasks] = await Promise.all([
+      const [summary, terminals, tasks, logs] = await Promise.all([
         getJson("/summary"),
         getJson("/terminals"),
         getJson(currentTaskQuery()),
+        getJson(currentLogQuery()),
       ]);
       renderSummary(summary);
       renderTerminals(terminals.items || []);
       renderTasks(tasks.items || []);
+      renderLogs(logs.items || []);
       if (state.selectedTaskId) {
         try {
           await loadTaskReport(state.selectedTaskId, { silent: true });
         } catch (error) {
           if (String(error.message || error).includes("task not found")) {
             state.selectedTaskId = null;
-            state.selectedReport = null;
-            document.getElementById("detail-subtitle").textContent = "请选择左侧任务";
-            document.getElementById("detail-body").textContent = "选中的任务已不存在，请重新选择。";
+            document.getElementById("detail-subtitle").textContent = TEXT.taskSelect;
+            document.getElementById("detail-body").textContent = "\\u9009\\u4e2d\\u7684\\u4efb\\u52a1\\u5df2\\u4e0d\\u5b58\\u5728\\uff0c\\u8bf7\\u91cd\\u65b0\\u9009\\u62e9\\u3002";
+          } else {
+            throw error;
+          }
+        }
+      }
+      if (state.selectedTerminalId) {
+        try {
+          await loadTerminalDetail(state.selectedTerminalId, { silent: true });
+        } catch (error) {
+          if (String(error.message || error).includes("terminal not found")) {
+            state.selectedTerminalId = null;
+            document.getElementById("terminal-detail-subtitle").textContent = TEXT.terminalSelect;
+            document.getElementById("terminal-detail-body").textContent = "\\u9009\\u4e2d\\u7684\\u7ec8\\u7aef\\u5df2\\u4e0d\\u5b58\\u5728\\uff0c\\u8bf7\\u91cd\\u65b0\\u9009\\u62e9\\u3002";
           } else {
             throw error;
           }
@@ -1393,39 +1230,21 @@ def _render_dashboard_page() -> str:
       const taskCount = Number(summary?.tasks?.task_count || 0);
       const failedCount = Number(summary?.tasks?.status_counts?.failed || 0);
       const logCount = Number(summary?.audit?.log_count || 0);
-
       document.getElementById("summary-grid").innerHTML = `
-        <div class="panel summary-card">
-          <div class="label">终端总数</div>
-          <div class="value">${terminalCount}</div>
-          <div class="meta">在线状态来自终端注册与心跳。</div>
-        </div>
-        <div class="panel summary-card">
-          <div class="label">任务总数</div>
-          <div class="value">${taskCount}</div>
-          <div class="meta">按服务端汇总统计，不受当前筛选影响。</div>
-        </div>
-        <div class="panel summary-card">
-          <div class="label">失败任务</div>
-          <div class="value">${failedCount}</div>
-          <div class="meta">建议优先打开失败详情检查可重试性。</div>
-        </div>
-        <div class="panel summary-card">
-          <div class="label">日志总数</div>
-          <div class="value">${logCount}</div>
-          <div class="meta">可结合任务详情中的最新日志排查。</div>
-        </div>
+        <div class="panel summary-card"><div class="label">\\u7ec8\\u7aef\\u603b\\u6570</div><div class="value">${terminalCount}</div><div class="meta">\\u5728\\u7ebf\\u72b6\\u6001\\u6765\\u81ea\\u7ec8\\u7aef\\u6ce8\\u518c\\u4e0e\\u5fc3\\u8df3\\u3002</div></div>
+        <div class="panel summary-card"><div class="label">\\u4efb\\u52a1\\u603b\\u6570</div><div class="value">${taskCount}</div><div class="meta">\\u6309\\u670d\\u52a1\\u7aef\\u6c47\\u603b\\u7edf\\u8ba1\\uff0c\\u4e0d\\u53d7\\u5f53\\u524d\\u7b5b\\u9009\\u5f71\\u54cd\\u3002</div></div>
+        <div class="panel summary-card"><div class="label">\\u5931\\u8d25\\u4efb\\u52a1</div><div class="value">${failedCount}</div><div class="meta">\\u5efa\\u8bae\\u4f18\\u5148\\u6253\\u5f00\\u5931\\u8d25\\u8be6\\u60c5\\u68c0\\u67e5\\u53ef\\u91cd\\u8bd5\\u6027\\u3002</div></div>
+        <div class="panel summary-card"><div class="label">\\u65e5\\u5fd7\\u603b\\u6570</div><div class="value">${logCount}</div><div class="meta">\\u53ef\\u7ed3\\u5408\\u4efb\\u52a1\\u8be6\\u60c5\\u6216\\u7ec8\\u7aef\\u8be6\\u60c5\\u6392\\u67e5\\u3002</div></div>
       `;
     }
 
     function renderTasks(items) {
       const body = document.getElementById("task-table-body");
-      document.getElementById("task-list-meta").textContent = "当前筛选结果 " + items.length + " 条";
+      document.getElementById("task-list-meta").textContent = "\\u5f53\\u524d\\u7b5b\\u9009\\u7ed3\\u679c " + items.length + " \\u6761";
       if (!items.length) {
-        body.innerHTML = '<tr><td colspan="8" class="notice">当前没有匹配的任务。</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="notice">' + TEXT.noTask + '</td></tr>';
         return;
       }
-
       body.innerHTML = items.map((item) => {
         const activeClass = state.selectedTaskId === item.task_id ? "active" : "";
         return `
@@ -1433,15 +1252,13 @@ def _render_dashboard_page() -> str:
             <td class="code">${escapeHtml(item.task_id)}</td>
             <td class="code">${escapeHtml(item.terminal_id)}</td>
             <td>${escapeHtml(item.script_name)}</td>
-            <td><span class="badge ${statusBadgeKind(item.status)}">${statusText(item.status)}</span></td>
+            <td><span class="badge ${statusBadgeKind(item.status)}">${escapeHtml(statusText(item.status))}</span></td>
             <td>${escapeHtml(item.priority)}</td>
             <td>${escapeHtml(item.attempt_count)} / ${escapeHtml(item.max_attempts)}</td>
             <td class="code">${escapeHtml(item.last_error_code || "-")}</td>
             <td>${escapeHtml(formatTime(item.created_at))}</td>
-          </tr>
-        `;
+          </tr>`;
       }).join("");
-
       for (const row of body.querySelectorAll(".task-row")) {
         row.addEventListener("click", () => loadTaskReport(row.dataset.taskId));
       }
@@ -1450,33 +1267,55 @@ def _render_dashboard_page() -> str:
     function renderTerminals(items) {
       const body = document.getElementById("terminal-table-body");
       if (!items.length) {
-        body.innerHTML = '<tr><td colspan="6" class="notice">当前没有终端注册记录。</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" class="notice">' + TEXT.noTerminal + '</td></tr>';
         return;
       }
-      body.innerHTML = items.map((item) => `
-        <tr>
-          <td class="code">${escapeHtml(item.terminal_id)}</td>
-          <td>${escapeHtml(item.hostname)}</td>
-          <td><span class="badge ${statusBadgeKind(item.status)}">${escapeHtml(statusText(item.status))}</span></td>
-          <td>${escapeHtml(item.operator_name)}</td>
-          <td class="code">${escapeHtml(item.agent_version)}</td>
-          <td>${escapeHtml(formatTime(item.last_seen_at))}</td>
-        </tr>
-      `).join("");
+      body.innerHTML = items.map((item) => {
+        const activeClass = state.selectedTerminalId === item.terminal_id ? "active" : "";
+        return `
+          <tr class="terminal-row ${activeClass}" data-terminal-id="${escapeHtml(item.terminal_id)}">
+            <td class="code">${escapeHtml(item.terminal_id)}</td>
+            <td>${escapeHtml(item.hostname)}</td>
+            <td><span class="badge ${statusBadgeKind(item.status)}">${escapeHtml(statusText(item.status))}</span></td>
+            <td>${escapeHtml(item.operator_name)}</td>
+            <td class="code">${escapeHtml(item.agent_version)}</td>
+            <td>${escapeHtml(formatTime(item.last_seen_at))}</td>
+          </tr>`;
+      }).join("");
+      for (const row of body.querySelectorAll(".terminal-row")) {
+        row.addEventListener("click", () => loadTerminalDetail(row.dataset.terminalId, { syncLogFilter: true }));
+      }
+    }
+
+    function renderLogs(items) {
+      const body = document.getElementById("log-table-body");
+      document.getElementById("log-list-meta").textContent = "\\u5f53\\u524d\\u65e5\\u5fd7\\u7ed3\\u679c " + items.length + " \\u6761";
+      if (!items.length) {
+        body.innerHTML = '<tr><td colspan="6" class="notice">' + TEXT.noLogs + '</td></tr>';
+        return;
+      }
+      body.innerHTML = items.map((item) => {
+        const activeClass = state.selectedLogId === item.log_id ? "active" : "";
+        return `
+          <tr class="log-row ${activeClass}" data-log-id="${escapeHtml(item.log_id)}">
+            <td class="code">${escapeHtml(item.log_id)}</td>
+            <td class="code">${escapeHtml(item.terminal_id || "-")}</td>
+            <td>${escapeHtml(item.level || "-")}</td>
+            <td>${escapeHtml(item.message || "-")}</td>
+            <td class="code">${escapeHtml(item.task_id || "-")}</td>
+            <td>${escapeHtml(formatTime(item.emitted_at))}</td>
+          </tr>`;
+      }).join("");
+      for (const row of body.querySelectorAll(".log-row")) {
+        row.addEventListener("click", () => loadLogDetail(row.dataset.logId));
+      }
     }
 
     async function loadTaskReport(taskId, options = {}) {
       const report = await getJson("/tasks/" + encodeURIComponent(taskId) + "/report");
       state.selectedTaskId = taskId;
-      state.selectedReport = report;
       renderTaskDetail(report);
-      highlightSelectedTask();
-      if (!options.silent) {
-        document.getElementById("detail-subtitle").textContent = "当前任务：" + taskId;
-      }
-    }
-
-    function highlightSelectedTask() {
+      if (!options.silent) document.getElementById("detail-subtitle").textContent = "\\u5f53\\u524d\\u4efb\\u52a1\\uff1a" + taskId;
       for (const row of document.querySelectorAll(".task-row")) {
         row.classList.toggle("active", row.dataset.taskId === state.selectedTaskId);
       }
@@ -1489,91 +1328,120 @@ def _render_dashboard_page() -> str:
       const summary = report.action_summary || {};
       const attempts = report.attempts || [];
       const events = report.events || [];
-
       document.getElementById("retry-task-btn").disabled = !Boolean(diagnostics.can_retry_now);
       document.getElementById("cancel-task-btn").disabled = !["queued", "dispatched", "running"].includes(task.status);
-
       const actionNames = Array.isArray(summary.action_names) ? summary.action_names : [];
-      const timelineHtml = events.length
-        ? events.slice().reverse().map((item) => `
-            <div class="timeline-item">
-              <div><strong>${escapeHtml(item.event_type)}</strong> | ${escapeHtml(statusText(item.status))}</div>
-              <div>${escapeHtml(item.message || "-")}</div>
-              <div class="meta">${escapeHtml(formatTime(item.emitted_at))}</div>
-            </div>
-          `).join("")
-        : '<div class="notice">暂无事件时间线。</div>';
-
-      const attemptsHtml = attempts.length
-        ? attempts.map((item) => `
-            <div class="timeline-item">
-              <div><strong>第 ${escapeHtml(item.attempt_number)} 次</strong> | ${escapeHtml(statusText(item.status))}</div>
-              <div>失败分类：${escapeHtml(item.failure_category || "-")} | 失败步骤：${escapeHtml(item.failed_step_name || "-")}</div>
-              <div>错误码：<span class="code">${escapeHtml(item.error_code || "-")}</span> | 步骤数：${escapeHtml(item.step_count || 0)}</div>
-              <div class="meta">run_id=${escapeHtml(item.run_id || "-")} | ${escapeHtml(formatTime(item.finished_at || item.started_at))}</div>
-            </div>
-          `).join("")
-        : '<div class="notice">暂无执行尝试。</div>';
-
-      const latestLogHtml = latestLog && Object.keys(latestLog).length
-        ? `
-          <div class="timeline-item">
-            <div><strong>${escapeHtml(latestLog.level || "-")}</strong> | ${escapeHtml(latestLog.message || "-")}</div>
-            <div class="meta">${escapeHtml(formatTime(latestLog.emitted_at))}</div>
-          </div>
-        `
-        : '<div class="notice">暂无日志。</div>';
-
+      const attemptsHtml = attempts.length ? attempts.map((item) => `
+        <div class="timeline-item">
+          <div><strong>\\u7b2c ${escapeHtml(item.attempt_number)} \\u6b21</strong> | ${escapeHtml(statusText(item.status))}</div>
+          <div>\\u5931\\u8d25\\u5206\\u7c7b\\uff1a${escapeHtml(item.failure_category || "-")} | \\u5931\\u8d25\\u6b65\\u9aa4\\uff1a${escapeHtml(item.failed_step_name || "-")}</div>
+          <div>error_code\\uff1a<span class="code">${escapeHtml(item.error_code || "-")}</span> | step_count\\uff1a${escapeHtml(item.step_count || 0)}</div>
+          <div class="meta">run_id=${escapeHtml(item.run_id || "-")} | ${escapeHtml(formatTime(item.finished_at || item.started_at))}</div>
+        </div>`).join("") : '<div class="notice">\\u6682\\u65e0\\u6267\\u884c\\u5c1d\\u8bd5\\u3002</div>';
+      const eventsHtml = events.length ? events.slice().reverse().map((item) => `
+        <div class="timeline-item">
+          <div><strong>${escapeHtml(item.event_type)}</strong> | ${escapeHtml(statusText(item.status))}</div>
+          <div>${escapeHtml(item.message || "-")}</div>
+          <div class="meta">${escapeHtml(formatTime(item.emitted_at))}</div>
+        </div>`).join("") : '<div class="notice">\\u6682\\u65e0\\u4e8b\\u4ef6\\u65f6\\u95f4\\u7ebf\\u3002</div>';
+      const latestLogHtml = latestLog && Object.keys(latestLog).length ? `
+        <div class="timeline-item">
+          <div><strong>${escapeHtml(latestLog.level || "-")}</strong> | ${escapeHtml(latestLog.message || "-")}</div>
+          <div class="meta">${escapeHtml(formatTime(latestLog.emitted_at))}</div>
+        </div>` : '<div class="notice">\\u6682\\u65e0\\u65e5\\u5fd7\\u3002</div>';
       document.getElementById("detail-body").innerHTML = `
         <div class="detail-grid">
-          <div class="kv"><div class="k">任务状态</div><div class="v"><span class="badge ${statusBadgeKind(task.status)}">${escapeHtml(statusText(task.status))}</span></div></div>
-          <div class="kv"><div class="k">健康状态</div><div class="v">${escapeHtml(healthText(diagnostics.health_status))}</div></div>
-          <div class="kv"><div class="k">脚本类型</div><div class="v">${escapeHtml(task.script_name || "-")}</div></div>
-          <div class="kv"><div class="k">终端 / 实例</div><div class="v code">${escapeHtml(task.terminal_id || "-")} / ${escapeHtml(task.instance_id || "-")}</div></div>
-          <div class="kv"><div class="k">尝试次数</div><div class="v">${escapeHtml(task.attempt_count || 0)} / ${escapeHtml(task.max_attempts || 0)}</div></div>
-          <div class="kv"><div class="k">最后错误码</div><div class="v code">${escapeHtml(task.last_error_code || "-")}</div></div>
-          <div class="kv"><div class="k">最后错误消息</div><div class="v">${escapeHtml(task.last_error_message || "-")}</div></div>
-          <div class="kv"><div class="k">建议动作</div><div class="v">${escapeHtml(summary.recommended_action || "-")}</div></div>
+          <div class="kv"><div class="k">\\u4efb\\u52a1\\u72b6\\u6001</div><div class="v"><span class="badge ${statusBadgeKind(task.status)}">${escapeHtml(statusText(task.status))}</span></div></div>
+          <div class="kv"><div class="k">\\u5065\\u5eb7\\u72b6\\u6001</div><div class="v">${escapeHtml(healthText(diagnostics.health_status))}</div></div>
+          <div class="kv"><div class="k">\\u811a\\u672c\\u7c7b\\u578b</div><div class="v">${escapeHtml(task.script_name || "-")}</div></div>
+          <div class="kv"><div class="k">\\u7ec8\\u7aef / \\u5b9e\\u4f8b</div><div class="v code">${escapeHtml(task.terminal_id || "-")} / ${escapeHtml(task.instance_id || "-")}</div></div>
+          <div class="kv"><div class="k">\\u5c1d\\u8bd5\\u6b21\\u6570</div><div class="v">${escapeHtml(task.attempt_count || 0)} / ${escapeHtml(task.max_attempts || 0)}</div></div>
+          <div class="kv"><div class="k">\\u6700\\u540e\\u9519\\u8bef\\u7801</div><div class="v code">${escapeHtml(task.last_error_code || "-")}</div></div>
+          <div class="kv"><div class="k">\\u6700\\u540e\\u9519\\u8bef\\u6d88\\u606f</div><div class="v">${escapeHtml(task.last_error_message || "-")}</div></div>
+          <div class="kv"><div class="k">\\u5efa\\u8bae\\u52a8\\u4f5c</div><div class="v">${escapeHtml(summary.recommended_action || "-")}</div></div>
         </div>
+        <div class="detail-section"><h3>\\u8ba1\\u5212\\u52a8\\u4f5c</h3><div class="chips">${actionNames.length ? actionNames.map((name) => `<span class="chip">${escapeHtml(name)}</span>`).join("") : '<span class="chip">\\u6682\\u65e0\\u52a8\\u4f5c\\u8ba1\\u5212</span>'}</div></div>
+        <div class="detail-section"><h3>\\u6700\\u65b0\\u65e5\\u5fd7</h3>${latestLogHtml}</div>
+        <div class="detail-section"><h3>\\u6267\\u884c\\u5c1d\\u8bd5</h3><div class="timeline">${attemptsHtml}</div></div>
+        <div class="detail-section"><h3>\\u4e8b\\u4ef6\\u65f6\\u95f4\\u7ebf</h3><div class="timeline">${eventsHtml}</div></div>`;
+    }
 
-        <div class="detail-section">
-          <h3>计划动作</h3>
-          <div class="chips">
-            ${actionNames.length ? actionNames.map((name) => `<span class="chip">${escapeHtml(name)}</span>`).join("") : '<span class="chip">暂无动作计划</span>'}
-          </div>
-        </div>
+    async function loadTerminalDetail(terminalId, options = {}) {
+      const [terminal, instances, logs] = await Promise.all([
+        getJson("/terminals/" + encodeURIComponent(terminalId)),
+        getJson("/instances?terminal_id=" + encodeURIComponent(terminalId)),
+        getJson("/logs?terminal_id=" + encodeURIComponent(terminalId)),
+      ]);
+      state.selectedTerminalId = terminalId;
+      if (options.syncLogFilter) document.getElementById("log-terminal-filter").value = terminalId;
+      renderTerminalDetail(terminal, instances.items || [], logs.items || []);
+      document.getElementById("terminal-detail-subtitle").textContent = "\\u5f53\\u524d\\u7ec8\\u7aef\\uff1a" + terminalId;
+      for (const row of document.querySelectorAll(".terminal-row")) {
+        row.classList.toggle("active", row.dataset.terminalId === state.selectedTerminalId);
+      }
+      if (options.syncLogFilter) await refreshLogs();
+    }
 
-        <div class="detail-section">
-          <h3>最新日志</h3>
-          ${latestLogHtml}
+    function renderTerminalDetail(terminal, instances, logs) {
+      const instanceHtml = instances.length ? instances.map((item) => `
+        <div class="timeline-item">
+          <div><strong>${escapeHtml(item.instance_id)}</strong> | ${escapeHtml(item.runtime_status || "-")}</div>
+          <div>profile_id=${escapeHtml(item.profile_id || "-")} | handle=${escapeHtml(item.handle || "-")}</div>
+          <div class="meta">window_id=${escapeHtml(item.window_id || "-")} | remark=${escapeHtml(item.remark || "-")}</div>
+        </div>`).join("") : '<div class="notice">' + TEXT.noInstances + '</div>';
+      const logHtml = logs.length ? logs.slice(0, 5).map((item) => `
+        <div class="timeline-item">
+          <div><strong>${escapeHtml(item.level || "-")}</strong> | ${escapeHtml(item.message || "-")}</div>
+          <div class="meta">${escapeHtml(formatTime(item.emitted_at))} | task_id=${escapeHtml(item.task_id || "-")}</div>
+        </div>`).join("") : '<div class="notice">\\u8be5\\u7ec8\\u7aef\\u6682\\u65e0\\u65e5\\u5fd7\\u3002</div>';
+      document.getElementById("terminal-detail-body").innerHTML = `
+        <div class="detail-grid">
+          <div class="kv"><div class="k">terminal_id</div><div class="v code">${escapeHtml(terminal.terminal_id || "-")}</div></div>
+          <div class="kv"><div class="k">\\u72b6\\u6001</div><div class="v"><span class="badge ${statusBadgeKind(terminal.status)}">${escapeHtml(statusText(terminal.status))}</span></div></div>
+          <div class="kv"><div class="k">hostname</div><div class="v">${escapeHtml(terminal.hostname || "-")}</div></div>
+          <div class="kv"><div class="k">operator</div><div class="v">${escapeHtml(terminal.operator_name || "-")}</div></div>
+          <div class="kv"><div class="k">agent_version</div><div class="v code">${escapeHtml(terminal.agent_version || "-")}</div></div>
+          <div class="kv"><div class="k">last_seen_at</div><div class="v">${escapeHtml(formatTime(terminal.last_seen_at))}</div></div>
         </div>
+        <div class="detail-section"><h3>metadata</h3>${jsonBlock(terminal.metadata || {})}</div>
+        <div class="detail-section"><h3>\\u5b9e\\u4f8b\\u5217\\u8868</h3><div class="timeline">${instanceHtml}</div></div>
+        <div class="detail-section"><h3>\\u6700\\u8fd1\\u65e5\\u5fd7</h3><div class="timeline">${logHtml}</div></div>`;
+    }
 
-        <div class="detail-section">
-          <h3>执行尝试</h3>
-          <div class="timeline">${attemptsHtml}</div>
-        </div>
+    async function refreshLogs() {
+      const logs = await getJson(currentLogQuery());
+      renderLogs(logs.items || []);
+    }
 
-        <div class="detail-section">
-          <h3>事件时间线</h3>
-          <div class="timeline">${timelineHtml}</div>
+    async function loadLogDetail(logId) {
+      const log = await getJson("/logs/" + encodeURIComponent(logId));
+      state.selectedLogId = logId;
+      document.getElementById("log-detail-subtitle").textContent = "\\u5f53\\u524d\\u65e5\\u5fd7\\uff1a" + logId;
+      document.getElementById("log-detail-body").innerHTML = `
+        <div class="detail-grid">
+          <div class="kv"><div class="k">log_id</div><div class="v code">${escapeHtml(log.log_id || "-")}</div></div>
+          <div class="kv"><div class="k">level</div><div class="v">${escapeHtml(log.level || "-")}</div></div>
+          <div class="kv"><div class="k">terminal_id</div><div class="v code">${escapeHtml(log.terminal_id || "-")}</div></div>
+          <div class="kv"><div class="k">task_id</div><div class="v code">${escapeHtml(log.task_id || "-")}</div></div>
+          <div class="kv"><div class="k">run_id</div><div class="v code">${escapeHtml(log.run_id || "-")}</div></div>
+          <div class="kv"><div class="k">emitted_at</div><div class="v">${escapeHtml(formatTime(log.emitted_at))}</div></div>
         </div>
-      `;
+        <div class="detail-section"><h3>message</h3><div class="timeline-item">${escapeHtml(log.message || "-")}</div></div>
+        <div class="detail-section"><h3>details</h3>${jsonBlock(log.details || {})}</div>`;
+      for (const row of document.querySelectorAll(".log-row")) {
+        row.classList.toggle("active", row.dataset.logId === state.selectedLogId);
+      }
     }
 
     async function controlSelectedTask(action) {
       if (!state.selectedTaskId) return;
       const reasonInput = document.getElementById("control-reason");
-      const reason = reasonInput.value.trim() || (action === "retry" ? "运营页发起重试" : "运营页发起取消");
+      const reason = reasonInput.value.trim() || (action === "retry" ? TEXT.retryReason : TEXT.cancelReason);
       try {
         await getJson("/tasks/control", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task_id: state.selectedTaskId,
-            action,
-            reason,
-            requested_by: "dashboard",
-          }),
+          body: JSON.stringify({ task_id: state.selectedTaskId, action, reason, requested_by: "dashboard" }),
         });
         await refreshAll();
         await loadTaskReport(state.selectedTaskId, { silent: true });
@@ -1593,12 +1461,18 @@ def _render_dashboard_page() -> str:
         document.getElementById("filter-script").value = "";
         await refreshAll();
       });
+      document.getElementById("apply-log-filters").addEventListener("click", refreshLogs);
+      document.getElementById("clear-log-filters").addEventListener("click", async () => {
+        document.getElementById("log-terminal-filter").value = "";
+        document.getElementById("log-level-filter").value = "";
+        await refreshLogs();
+      });
       document.getElementById("refresh-all").addEventListener("click", refreshAll);
       document.getElementById("retry-task-btn").addEventListener("click", () => controlSelectedTask("retry"));
       document.getElementById("cancel-task-btn").addEventListener("click", () => controlSelectedTask("cancel"));
       document.getElementById("auto-refresh-toggle").addEventListener("click", () => {
         state.autoRefresh = !state.autoRefresh;
-        document.getElementById("auto-refresh-toggle").textContent = "自动刷新：" + (state.autoRefresh ? "开" : "关");
+        document.getElementById("auto-refresh-toggle").textContent = "\\u81ea\\u52a8\\u5237\\u65b0\\uff1a" + (state.autoRefresh ? "\\u5f00" : "\\u5173");
       });
     }
 
@@ -1606,15 +1480,13 @@ def _render_dashboard_page() -> str:
       bindEvents();
       resetCreateForm();
       await refreshAll();
-      state.timerId = window.setInterval(() => {
-        if (state.autoRefresh) {
-          refreshAll().catch((error) => console.error(error));
-        }
+      window.setInterval(() => {
+        if (state.autoRefresh) refreshAll().catch((error) => console.error(error));
       }, 5000);
     }
 
     bootstrap().catch((error) => {
-      document.getElementById("detail-body").innerHTML = '<div class="notice">页面初始化失败：' + escapeHtml(error.message || String(error)) + '</div>';
+      document.getElementById("detail-body").innerHTML = '<div class="notice">\\u9875\\u9762\\u521d\\u59cb\\u5316\\u5931\\u8d25\\uff1a' + escapeHtml(error.message || String(error)) + '</div>';
     });
   </script>
 </body>
