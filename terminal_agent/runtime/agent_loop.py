@@ -51,17 +51,22 @@ class TerminalAgentLoop:
             for item in claimed_response.get("items", [])
         ]
         self._runtime.accept_task_assignments(claimed_assignments)
-        executions = [
-            self._worker_registry.execute(
+        executions = []
+        for item in claimed_assignments:
+            run = self._worker_registry.build_run(
                 item,
+                terminal_hostname=self._runtime.registration_payload().hostname,
+            )
+            self._nas_client.mark_task_running(run)
+            result = self._worker_registry.execute_run(
+                item,
+                run=run,
                 terminal_hostname=self._runtime.registration_payload().hostname,
                 bitbrowser_client=self._bitbrowser_client,
                 metadata={"agent_version": self._runtime.registration_payload().agent_version},
             )
-            for item in claimed_assignments
-        ]
+            executions.append(WorkerExecution(run=run, result=result))
         for execution in executions:
-            self._nas_client.mark_task_running(execution.run)
             self._nas_client.submit_task_result(execution.result)
 
         return {

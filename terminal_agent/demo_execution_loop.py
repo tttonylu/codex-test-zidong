@@ -6,6 +6,7 @@ import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from nas_control_plane.server import create_server
 from shared.protocol import TaskAssignmentPayload
@@ -71,7 +72,11 @@ class MockBitBrowserHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    nas = create_server(port=8771)
+    state_path = Path("nas_control_plane/state.execution-loop.demo.sqlite3")
+    if state_path.exists():
+        state_path.unlink()
+
+    nas = create_server(port=8771, state_path=state_path)
     bitbrowser = ThreadingHTTPServer(("127.0.0.1", 15437), MockBitBrowserHandler)
 
     nas_thread = threading.Thread(target=nas.serve_forever, daemon=True)
@@ -119,16 +124,23 @@ def main() -> None:
         cycle = loop.run(cycles=1, interval_seconds=0)
         tasks = nas_client.list_tasks("terminal-exec-01")
         logs = nas_client.list_logs()
+        task_events = nas_client.list_task_events("task-exec-01")
+        task_attempts = nas_client.list_task_attempts("task-exec-01")
+        task_report = nas_client.get_task_report("task-exec-01")
 
         print(
             json.dumps(
-                        {
-                            "cycle_results": cycle,
-                            "task_statuses": [item["status"] for item in tasks["items"]],
-                            "task_run_ids": [item["parameters"].get("run_id") for item in tasks["items"]],
-                            "log_levels": [item["level"] for item in logs["items"]],
-                            "log_messages": [item["message"] for item in logs["items"]],
-                        },
+                {
+                    "cycle_results": cycle,
+                    "task_statuses": [item["status"] for item in tasks["items"]],
+                    "task_run_ids": [item["parameters"].get("run_id") for item in tasks["items"]],
+                    "log_levels": [item["level"] for item in logs["items"]],
+                    "log_messages": [item["message"] for item in logs["items"]],
+                    "task_event_types": [item["event_type"] for item in task_events["items"]],
+                    "task_attempt_statuses": [item["status"] for item in task_attempts["items"]],
+                    "task_report_attempt_count": len(task_report["attempts"]),
+                    "task_report_step_count": task_report["attempts"][0]["details"].get("step_count") if task_report["attempts"] else None,
+                },
                 separators=(",", ":"),
             )
         )
@@ -137,6 +149,12 @@ def main() -> None:
         nas.shutdown()
         bitbrowser.server_close()
         nas.server_close()
+        time.sleep(0.2)
+        if state_path.exists():
+            try:
+                state_path.unlink()
+            except PermissionError:
+                pass
 
 
 if __name__ == "__main__":

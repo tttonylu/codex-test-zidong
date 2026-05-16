@@ -44,7 +44,7 @@ class TerminalRegistryService:
             )
 
         self._terminals[payload.terminal_id] = record
-        self._save_state()
+        self._persist_terminal(record)
         return record
 
     def record_heartbeat(self, payload: HeartbeatPayload) -> TerminalRecord:
@@ -63,7 +63,7 @@ class TerminalRegistryService:
             },
         )
         self._terminals[payload.terminal_id] = record
-        self._save_state()
+        self._persist_terminal(record)
         return record
 
     def sync_instances(
@@ -104,20 +104,59 @@ class TerminalRegistryService:
         for instance_id in stale_ids:
             del self._instances[instance_id]
 
-        self._save_state()
+        self._persist_terminal(self._terminals[terminal_id])
+        self._persist_instances_for_terminal(terminal_id, synced, terminal_instance_ids)
         return synced
 
-    def list_terminals(self) -> list[TerminalRecord]:
-        """Return all known terminals."""
+    def get_terminal(self, terminal_id: str) -> TerminalRecord | None:
+        """Return one terminal by id if it exists."""
 
-        return list(self._terminals.values())
+        return self._terminals.get(terminal_id)
 
-    def list_instances(self, terminal_id: str | None = None) -> list[InstanceRecord]:
-        """Return known instances, optionally filtered by terminal."""
+    def get_instance(self, instance_id: str) -> InstanceRecord | None:
+        """Return one instance by id if it exists."""
 
-        if terminal_id is None:
-            return list(self._instances.values())
-        return [record for record in self._instances.values() if record.terminal_id == terminal_id]
+        return self._instances.get(instance_id)
+
+    def list_terminals(self, status: str | None = None) -> list[TerminalRecord]:
+        """Return known terminals, optionally filtered by status."""
+
+        records = list(self._terminals.values())
+        if status is None:
+            return records
+        return [record for record in records if record.status == status]
+
+    def list_instances(
+        self,
+        terminal_id: str | None = None,
+        runtime_status: str | None = None,
+    ) -> list[InstanceRecord]:
+        """Return known instances, optionally filtered by terminal and runtime status."""
+
+        records = list(self._instances.values())
+        if terminal_id is not None:
+            records = [record for record in records if record.terminal_id == terminal_id]
+        if runtime_status is not None:
+            records = [record for record in records if record.runtime_status == runtime_status]
+        return records
+
+    def summary(self) -> dict[str, object]:
+        """Return a small aggregate view for management queries."""
+
+        terminal_status_counts: dict[str, int] = {}
+        for record in self._terminals.values():
+            terminal_status_counts[record.status] = terminal_status_counts.get(record.status, 0) + 1
+
+        instance_status_counts: dict[str, int] = {}
+        for record in self._instances.values():
+            instance_status_counts[record.runtime_status] = instance_status_counts.get(record.runtime_status, 0) + 1
+
+        return {
+            "terminal_count": len(self._terminals),
+            "instance_count": len(self._instances),
+            "terminal_status_counts": terminal_status_counts,
+            "instance_status_counts": instance_status_counts,
+        }
 
     def _require_terminal(self, terminal_id: str) -> TerminalRecord:
         try:
@@ -129,12 +168,36 @@ class TerminalRegistryService:
         if self._repository is None:
             return
 
-        self._terminals = self._repository.load_terminals()
-        self._instances = self._repository.load_instances()
+        self._terminals, self._instances = self._repository.load_state()
 
     def _save_state(self) -> None:
         if self._repository is None:
             return
 
-        self._repository.save_terminals(self._terminals)
-        self._repository.save_instances(self._instances)
+        self._repository.save_state(self._terminals, self._instances)
+
+    def _persist_terminal(self, record: TerminalRecord) -> None:
+        if self._repository is None:
+            return
+        if hasattr(self._repository, "upsert_terminal"):
+            self._repository.upsert_terminal(record)
+            return
+        self._save_state()
+
+    def _persist_instances_for_terminal(
+        self,
+        terminal_id: str,
+        records: list[InstanceRecord],
+        keep_instance_ids: set[str],
+    ) -> None:
+        if self._repository is None:
+            return
+        if hasattr(self._repository, "upsert_instance") and hasattr(
+            self._repository,
+            "delete_instances_for_terminal_except",
+        ):
+            for record in records:
+                self._repository.upsert_instance(record)
+            self._repository.delete_instances_for_terminal_except(terminal_id, keep_instance_ids)
+            return
+        self._save_state()

@@ -45,6 +45,13 @@ class TaskRecord:
     status: str
     instance_id: str | None = None
     priority: int = 0
+    attempt_count: int = 0
+    max_attempts: int = 1
+    retryable: bool = False
+    final: bool = False
+    last_error_code: str | None = None
+    last_error_message: str | None = None
+    cancel_reason: str | None = None
     parameters: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.utcnow)
 
@@ -75,4 +82,39 @@ class ActionLogRecord:
     emitted_at: datetime = field(default_factory=datetime.utcnow)
     task_id: str | None = None
     run_id: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class TaskEventRecord:
+    """Represents one task lifecycle event stored as a timeline entry."""
+
+    event_id: str
+    task_id: str
+    terminal_id: str
+    event_type: str
+    status: str
+    emitted_at: datetime = field(default_factory=datetime.utcnow)
+    run_id: str | None = None
+    message: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class TaskAttemptRecord:
+    """Represents one aggregated execution attempt for a task."""
+
+    task_id: str
+    attempt_number: int
+    terminal_id: str
+    status: str
+    run_id: str | None = None
+    script_name: str | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    summary: str | None = None
+    error_code: str | None = None
+    error_message: str | None = None
+    retryable: bool | None = None
+    final: bool | None = None
     details: dict[str, Any] = field(default_factory=dict)

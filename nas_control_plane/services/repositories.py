@@ -132,22 +132,83 @@ def _task_to_dict(record: TaskRecord) -> dict[str, object]:
         "status": record.status,
         "instance_id": record.instance_id,
         "priority": record.priority,
+        "attempt_count": record.attempt_count,
+        "max_attempts": record.max_attempts,
+        "retryable": record.retryable,
+        "final": record.final,
+        "last_error_code": record.last_error_code,
+        "last_error_message": record.last_error_message,
+        "cancel_reason": record.cancel_reason,
         "parameters": dict(record.parameters),
         "created_at": record.created_at.isoformat(),
     }
 
 
 def _task_from_dict(payload: dict[str, object]) -> TaskRecord:
+    parameters = dict(payload.get("parameters", {}))
+    status = str(payload["status"])
+    max_attempts = _resolve_task_max_attempts(payload, parameters)
+    attempt_count = _resolve_task_attempt_count(payload, parameters, status)
+    retryable = bool(payload.get("retryable", False))
+    final = bool(payload.get("final", False))
+    if "retryable" not in payload and status == "failed" and attempt_count < max_attempts:
+        retryable = True
+    if "final" not in payload:
+        final = status in {"completed", "cancelled"} or (status == "failed" and not retryable)
+
     return TaskRecord(
         task_id=str(payload["task_id"]),
         terminal_id=str(payload["terminal_id"]),
         script_name=str(payload["script_name"]),
-        status=str(payload["status"]),
+        status=status,
         instance_id=str(payload["instance_id"]) if payload.get("instance_id") is not None else None,
         priority=int(payload.get("priority", 0)),
-        parameters=dict(payload.get("parameters", {})),
+        attempt_count=attempt_count,
+        max_attempts=max_attempts,
+        retryable=retryable,
+        final=final,
+        last_error_code=str(payload["last_error_code"]) if payload.get("last_error_code") is not None else None,
+        last_error_message=(
+            str(payload["last_error_message"])
+            if payload.get("last_error_message") is not None
+            else str(parameters["last_error"])
+            if parameters.get("last_error") is not None
+            else None
+        ),
+        cancel_reason=(
+            str(payload["cancel_reason"])
+            if payload.get("cancel_reason") is not None
+            else str(parameters["cancel_reason"])
+            if parameters.get("cancel_reason") is not None
+            else None
+        ),
+        parameters=parameters,
         created_at=datetime.fromisoformat(str(payload["created_at"])),
     )
+
+
+def _resolve_task_max_attempts(payload: dict[str, object], parameters: dict[str, object]) -> int:
+    if payload.get("max_attempts") is not None:
+        return max(1, int(payload["max_attempts"]))
+    if parameters.get("max_attempts") is not None:
+        return max(1, int(parameters["max_attempts"]))
+    if parameters.get("retry_limit") is not None:
+        return max(1, int(parameters["retry_limit"]) + 1)
+    return 1
+
+
+def _resolve_task_attempt_count(
+    payload: dict[str, object],
+    parameters: dict[str, object],
+    status: str,
+) -> int:
+    if payload.get("attempt_count") is not None:
+        return max(0, int(payload["attempt_count"]))
+
+    retry_count = max(0, int(parameters.get("retry_count", 0)))
+    if status in {"running", "completed", "failed", "cancelled", "dispatched"}:
+        return retry_count + 1
+    return retry_count
 
 
 def _log_to_dict(record: ActionLogRecord) -> dict[str, object]:

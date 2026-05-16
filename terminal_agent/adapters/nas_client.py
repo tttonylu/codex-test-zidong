@@ -13,6 +13,7 @@ from shared.protocol import (
     InstanceSnapshotPayload,
     ScriptRunPayload,
     TaskAssignmentPayload,
+    TaskControlPayload,
     TerminalRegistrationPayload,
 )
 
@@ -46,15 +47,40 @@ class NasControlPlaneClient:
         }
         return self._post_json("/instances/sync", body)
 
-    def list_terminals(self) -> dict[str, Any]:
+    def list_terminals(self, status: str | None = None) -> dict[str, Any]:
         """Fetch the current terminal view from the NAS."""
 
-        return self._get_json("/terminals")
+        path = "/terminals"
+        if status is not None:
+            path = f"/terminals?{urlencode({'status': status})}"
+        return self._get_json(path)
 
-    def list_instances(self) -> dict[str, Any]:
+    def get_terminal(self, terminal_id: str) -> dict[str, Any]:
+        """Fetch one terminal by id from the NAS."""
+
+        return self._get_json(f"/terminals/{terminal_id}")
+
+    def list_instances(
+        self,
+        terminal_id: str | None = None,
+        runtime_status: str | None = None,
+    ) -> dict[str, Any]:
         """Fetch the current instance view from the NAS."""
 
-        return self._get_json("/instances")
+        query: dict[str, str] = {}
+        if terminal_id is not None:
+            query["terminal_id"] = terminal_id
+        if runtime_status is not None:
+            query["runtime_status"] = runtime_status
+        path = "/instances"
+        if query:
+            path = f"/instances?{urlencode(query)}"
+        return self._get_json(path)
+
+    def get_instance(self, instance_id: str) -> dict[str, Any]:
+        """Fetch one instance by id from the NAS."""
+
+        return self._get_json(f"/instances/{instance_id}")
 
     def create_task(self, payload: TaskAssignmentPayload) -> dict[str, Any]:
         """Create a task on the NAS side."""
@@ -64,15 +90,66 @@ class NasControlPlaneClient:
     def list_tasks(self, terminal_id: str | None = None) -> dict[str, Any]:
         """Fetch current task state, optionally filtered by terminal."""
 
-        path = "/tasks"
+        query: dict[str, str] = {}
         if terminal_id is not None:
-            path = f"/tasks?{urlencode({'terminal_id': terminal_id})}"
+            query["terminal_id"] = terminal_id
+        path = "/tasks"
+        if query:
+            path = f"/tasks?{urlencode(query)}"
         return self._get_json(path)
+
+    def list_tasks_filtered(
+        self,
+        terminal_id: str | None = None,
+        status: str | None = None,
+        script_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch task state with optional management filters."""
+
+        query: dict[str, str] = {}
+        if terminal_id is not None:
+            query["terminal_id"] = terminal_id
+        if status is not None:
+            query["status"] = status
+        if script_name is not None:
+            query["script_name"] = script_name
+        path = "/tasks"
+        if query:
+            path = f"/tasks?{urlencode(query)}"
+        return self._get_json(path)
+
+    def get_task(self, task_id: str) -> dict[str, Any]:
+        """Fetch one task by id from the NAS."""
+
+        return self._get_json(f"/tasks/{task_id}")
+
+    def list_task_events(self, task_id: str | None = None) -> dict[str, Any]:
+        """Fetch task lifecycle timeline entries."""
+
+        path = "/task-events"
+        if task_id is not None:
+            path = f"/tasks/{task_id}/events"
+        return self._get_json(path)
+
+    def list_task_attempts(self, task_id: str) -> dict[str, Any]:
+        """Fetch aggregated execution attempts for one task."""
+
+        return self._get_json(f"/tasks/{task_id}/attempts")
+
+    def get_task_report(self, task_id: str) -> dict[str, Any]:
+        """Fetch a combined diagnostic report for one task."""
+
+        return self._get_json(f"/tasks/{task_id}/report")
 
     def claim_tasks(self, terminal_id: str) -> dict[str, Any]:
         """Claim queued tasks assigned to one terminal."""
 
         return self._post_json("/tasks/claim", {"terminal_id": terminal_id})
+
+    def control_task(self, payload: TaskControlPayload) -> dict[str, Any]:
+        """Apply a control-plane action to one task."""
+
+        return self._post_json("/tasks/control", payload.to_dict())
 
     def submit_task_result(self, payload: ActionResultPayload) -> dict[str, Any]:
         """Submit one task execution result back to the NAS."""
@@ -88,6 +165,36 @@ class NasControlPlaneClient:
         """Fetch audit log entries from the NAS."""
 
         return self._get_json("/logs")
+
+    def list_logs_filtered(
+        self,
+        terminal_id: str | None = None,
+        task_id: str | None = None,
+        level: str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch audit log entries with optional management filters."""
+
+        query: dict[str, str] = {}
+        if terminal_id is not None:
+            query["terminal_id"] = terminal_id
+        if task_id is not None:
+            query["task_id"] = task_id
+        if level is not None:
+            query["level"] = level
+        path = "/logs"
+        if query:
+            path = f"/logs?{urlencode(query)}"
+        return self._get_json(path)
+
+    def get_log(self, log_id: str) -> dict[str, Any]:
+        """Fetch one audit log entry by id from the NAS."""
+
+        return self._get_json(f"/logs/{log_id}")
+
+    def get_summary(self) -> dict[str, Any]:
+        """Fetch a compact NAS-side management summary."""
+
+        return self._get_json("/summary")
 
     def healthcheck(self) -> dict[str, Any]:
         """Check whether the NAS service is healthy."""

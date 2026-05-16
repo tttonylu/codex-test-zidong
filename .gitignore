@@ -8,6 +8,11 @@ venv/
 
 # Local NAS state
 nas_control_plane/state*.json
+nas_control_plane/state*.sqlite3
+*.sqlite3
+*.sqlite3-*
+*.db
+*.log
 
 # OS/editor files
 .DS_Store

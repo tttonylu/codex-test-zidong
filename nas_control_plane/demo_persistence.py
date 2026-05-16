@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -72,7 +73,7 @@ class MockBitBrowserHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    state_path = Path("nas_control_plane/state.demo.json")
+    state_path = Path("nas_control_plane/state.demo.sqlite3")
     if state_path.exists():
         state_path.unlink()
 
@@ -130,7 +131,11 @@ def main() -> None:
         instances = reloaded_client.list_instances()
         tasks = reloaded_client.list_tasks("terminal-persist-01")
         logs = reloaded_client.list_logs()
-        on_disk = json.loads(state_path.read_text(encoding="utf-8"))
+        with sqlite3.connect(state_path) as connection:
+            table_rows = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+            ).fetchall()
+        table_names = [row[0] for row in table_rows]
         print(
             json.dumps(
                 {
@@ -138,7 +143,7 @@ def main() -> None:
                     "instance_count": len(instances["items"]),
                     "task_statuses": [item["status"] for item in tasks["items"]],
                     "log_count": len(logs["items"]),
-                    "state_keys": sorted(on_disk.keys()),
+                    "tables": table_names,
                 },
                 separators=(",", ":"),
             )
@@ -146,8 +151,13 @@ def main() -> None:
     finally:
         reloaded.shutdown()
         reloaded.server_close()
+        reload_thread.join(timeout=1)
+        time.sleep(0.2)
         if state_path.exists():
-            state_path.unlink()
+            try:
+                state_path.unlink()
+            except PermissionError:
+                pass
 
 
 if __name__ == "__main__":

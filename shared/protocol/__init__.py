@@ -6,6 +6,7 @@ from .payloads import (
     InstanceSnapshotPayload,
     ScriptRunPayload,
     TaskAssignmentPayload,
+    TaskControlPayload,
     TerminalRegistrationPayload,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "InstanceSnapshotPayload",
     "ScriptRunPayload",
     "TaskAssignmentPayload",
+    "TaskControlPayload",
     "TerminalRegistrationPayload",
 ]

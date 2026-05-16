@@ -73,6 +73,8 @@ def main() -> None:
                     "run_status": execution.run.status,
                     "result_status": execution.result.status,
                     "summary": execution.result.summary,
+                    "step_count": execution.result.details.get("step_count"),
+                    "step_names": [step["name"] for step in execution.result.details.get("steps", [])],
                     "details": execution.result.details,
                 },
                 separators=(",", ":"),

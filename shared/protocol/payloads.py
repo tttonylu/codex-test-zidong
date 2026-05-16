@@ -111,6 +111,10 @@ class ActionResultPayload:
     terminal_id: str
     status: str
     summary: str
+    error_code: str | None = None
+    error_message: str | None = None
+    retryable: bool | None = None
+    final: bool | None = None
     details: dict[str, Any] = field(default_factory=dict)
     emitted_at: datetime = field(default_factory=datetime.utcnow)
 
@@ -120,3 +124,19 @@ class ActionResultPayload:
         data = asdict(self)
         data["emitted_at"] = self.emitted_at.isoformat()
         return data
+
+
+@dataclass(slots=True)
+class TaskControlPayload:
+    """Control action applied to a task from the NAS side."""
+
+    task_id: str
+    action: str
+    reason: str | None = None
+    requested_by: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-serializable representation of the payload."""
+
+        return asdict(self)

@@ -2,36 +2,19 @@
 
 from __future__ import annotations
 
+from terminal_agent.scripts.helpers import execute_browser_open_action
 from terminal_agent.scripts.types import WorkerContext, WorkerOutcome
 
 
 def execute(context: WorkerContext) -> WorkerOutcome:
-    """Execute a chat task using the BitBrowser open API when available."""
-
-    browser_id = context.task.instance_id
-    if not browser_id:
-        raise ValueError("chat task requires instance_id")
-
-    if context.bitbrowser_client is None:
-        raise ValueError("chat worker requires bitbrowser_client")
+    """Execute a chat task using a structured browser-open action."""
 
     target = str(context.task.parameters.get("target_handle", "unknown"))
     target_url = f"https://x.com/messages/compose?recipient_id={target}"
-    response = context.bitbrowser_client.open_browser(
-        browser_id=browser_id,
-        args=[target_url],
-        queue=True,
-    )
-    response_data = response.get("data", {})
-
-    return WorkerOutcome(
+    return execute_browser_open_action(
+        context,
+        action="chat",
         summary="chat executed",
-        details={
-            "action": "chat",
-            "target_handle": target,
-            "target_url": target_url,
-            "instance_id": browser_id,
-            "terminal_id": context.terminal_id,
-            "browser_open_result": response_data,
-        },
+        target_url=target_url,
+        target_details={"target_handle": target},
     )

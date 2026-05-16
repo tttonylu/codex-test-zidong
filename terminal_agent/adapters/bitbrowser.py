@@ -63,6 +63,11 @@ class BitBrowserClient:
             raise RuntimeError(f"BitBrowser open failed: {response.get('msg', 'unknown error')}")
         return response
 
+    def open_browser_for_url(self, browser_id: str, target_url: str, queue: bool = True) -> dict[str, Any]:
+        """Open one browser directly against a target URL."""
+
+        return self.open_browser(browser_id=browser_id, args=[target_url], queue=queue)
+
     def close_browser(self, browser_id: str) -> dict[str, Any]:
         """Close one BitBrowser window."""
 

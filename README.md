@@ -1,79 +1,52 @@
 # Codex Matrix BPlus
 
-`codex-matrix-bplus` 是 `opencode` 下独立的新架构项目目录。
+This repository is a standalone prototype for a matrix-style NAS and terminal-agent control plane.
+It is not a drop-in replacement for older project directories.
 
-目标不是替换当前正在跑的主链路，而是为下一代矩阵化主框架提供一个干净的实现空间。
+## Current Scope
 
-## 项目目标
+The prototype currently includes:
 
-这套方案按四层结构推进：
+- NAS-side terminal and instance registry
+- SQLite-backed task persistence
+- task dispatch, running, result, cancel, and retry flows
+- audit logs
+- task event timeline
+- aggregated task attempt views
+- combined task diagnostic report view
+- a minimal CLI for management queries and task controls
 
-1. NAS 总控层
-2. 终端代理层
-3. 实例运行层
-4. 脚本执行层
+## Main Modules
 
-核心链路：
+- `nas_control_plane/`
+  NAS-side HTTP server, persistence, task state, audit logs, and CLI
+- `terminal_agent/`
+  terminal runtime, BitBrowser adapter, NAS client, worker execution loop
+- `shared/`
+  protocol payloads shared by NAS and terminal sides
+- `docs/`
+  project structure and architecture notes
 
-`NAS 总控 -> 终端代理 -> 实例 -> 脚本`
+## Useful Commands
 
-## 当前范围
+Run the NAS server:
 
-当前目录只做以下事情：
-
-- 定义架构分层
-- 搭建目录骨架
-- 编写模型与接口草案
-- 为后续最小原型预留代码位置
-
-当前目录不直接替换以下现有模块：
-
-- `X-Matrix-Bot/`
-- `x_matrix_nas/`
-- `scrm_monitor/`
-
-## 设计原则
-
-- 总控只做全局调度和持久化
-- 终端代理只做本机控制与状态汇聚
-- 实例是标准运行单元
-- 脚本是执行器，不承担全局调度职责
-- 不把页面当成主框架本身
-
-## 目录结构
-
-```text
-codex-matrix-bplus/
-├─ README.md
-├─ docs/
-│  └─ architecture.md
-├─ nas_control_plane/
-│  ├─ README.md
-│  ├─ models/
-│  │  └─ README.md
-│  └─ services/
-│     └─ README.md
-├─ terminal_agent/
-│  ├─ README.md
-│  ├─ runtime/
-│  │  └─ README.md
-│  ├─ adapters/
-│  │  └─ README.md
-│  ├─ models/
-│  │  └─ README.md
-│  └─ scripts/
-│     └─ README.md
-└─ shared/
-   ├─ README.md
-   └─ protocol/
-      └─ README.md
+```bash
+python -m nas_control_plane.server
 ```
 
-## 下一步
+Use the CLI against a running NAS server:
 
-下一步优先做 3 件事：
+```bash
+python -m nas_control_plane.cli --base-url http://127.0.0.1:8765 summary
+python -m nas_control_plane.cli --base-url http://127.0.0.1:8765 task-report --task-id task-1
+python -m nas_control_plane.cli --base-url http://127.0.0.1:8765 cancel-task --task-id task-1 --reason "manual stop"
+```
 
-1. 定义终端、实例、任务、脚本运行的数据模型
-2. 定义 NAS 与终端之间的协议
-3. 先做终端代理最小原型
+Run selected verification demos:
 
+```bash
+python -m nas_control_plane.demo_task_report
+python -m nas_control_plane.demo_task_attempts
+python -m terminal_agent.demo_execution_loop
+```
