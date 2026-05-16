@@ -20,6 +20,9 @@ from nas_control_plane.services import (
     SqliteTaskRepository,
     TerminalRegistryService,
     SqliteTerminalStateRepository,
+    build_chat_action_plan,
+    build_follow_action_plan,
+    build_probe_action_plan,
 )
 from shared.protocol import (
     ActionResultPayload,
@@ -158,15 +161,18 @@ def create_server(
                     if task is None:
                         self._send_json(HTTPStatus.NOT_FOUND, {"error": "task not found"})
                         return
+                    task_attempts = tasks.list_task_attempts(task_id)
+                    task_events = tasks.list_task_events(task_id)
                     latest_log = audit.latest_log_for_task(task_id)
                     self._send_json(
                         HTTPStatus.OK,
                         {
                             "task": _record_to_dict(task),
-                            "attempts": [_record_to_dict(item) for item in tasks.list_task_attempts(task_id)],
-                            "events": [_record_to_dict(item) for item in tasks.list_task_events(task_id)],
+                            "attempts": [_record_to_dict(item) for item in task_attempts],
+                            "events": [_record_to_dict(item) for item in task_events],
                             "latest_log": _record_to_dict(latest_log) if latest_log is not None else None,
-                            "action_summary": _build_action_summary(tasks.list_task_attempts(task_id)),
+                            "action_summary": _build_action_summary(task, task_attempts),
+                            "diagnostics": _build_task_diagnostics(task, task_attempts),
                         },
                     )
                     return
@@ -423,18 +429,20 @@ def _query_value(query: dict[str, list[str]], name: str) -> str | None:
     return values[0]
 
 
-def _build_action_summary(attempts: list[Any]) -> dict[str, Any]:
+def _build_action_summary(task: Any, attempts: list[Any]) -> dict[str, Any]:
     action_names: list[str] = []
     failed_step = None
     failed_action = None
     failure_category = None
     recommended_action = None
+    seen_names: set[str] = set()
     for attempt in attempts:
         details = getattr(attempt, "details", {}) or {}
         for item in details.get("browser_action_results", []):
             name = item.get("name")
-            if isinstance(name, str):
+            if isinstance(name, str) and name not in seen_names:
                 action_names.append(name)
+                seen_names.add(name)
         if failed_step is None and details.get("failed_step") is not None:
             failed_step = details.get("failed_step")
         if failed_action is None and details.get("failed_action") is not None:
@@ -444,6 +452,13 @@ def _build_action_summary(attempts: list[Any]) -> dict[str, Any]:
         if recommended_action is None and getattr(attempt, "recommended_action", None) is not None:
             recommended_action = getattr(attempt, "recommended_action")
 
+    if not action_names:
+        for item in _resolve_task_action_plan(task):
+            name = item.get("name")
+            if isinstance(name, str) and name not in seen_names:
+                action_names.append(name)
+                seen_names.add(name)
+
     return {
         "action_names": action_names,
         "action_count": len(action_names),
@@ -451,6 +466,69 @@ def _build_action_summary(attempts: list[Any]) -> dict[str, Any]:
         "failed_action": failed_action,
         "failure_category": failure_category,
         "recommended_action": recommended_action,
+    }
+
+
+def _resolve_task_action_plan(task: Any) -> list[dict[str, Any]]:
+    parameters = getattr(task, "parameters", {}) or {}
+    raw_plan = parameters.get("action_plan")
+    if isinstance(raw_plan, list):
+        return [item for item in raw_plan if isinstance(item, dict)]
+
+    script_name = getattr(task, "script_name", None)
+    if script_name == "follow":
+        target_handle = parameters.get("target_handle")
+        if isinstance(target_handle, str) and target_handle:
+            return build_follow_action_plan(
+                target_handle=target_handle,
+                annotate_remark=bool(parameters.get("annotate_remark", False)),
+            )
+    if script_name == "chat":
+        target_handle = parameters.get("target_handle")
+        if isinstance(target_handle, str) and target_handle:
+            return build_chat_action_plan(
+                target_handle=target_handle,
+                annotate_remark=bool(parameters.get("annotate_remark", False)),
+            )
+    if script_name == "probe":
+        target_url = parameters.get("target_url")
+        if isinstance(target_url, str) and target_url:
+            return build_probe_action_plan(
+                target_url=target_url,
+                annotate_remark=bool(parameters.get("annotate_remark", False)),
+            )
+    return []
+
+
+def _build_task_diagnostics(task: Any, attempts: list[Any]) -> dict[str, Any]:
+    latest_failed_attempt = None
+    for attempt in reversed(attempts):
+        if getattr(attempt, "status", None) == "failed":
+            latest_failed_attempt = attempt
+            break
+
+    if task.status == "completed":
+        health_status = "healthy"
+    elif task.status == "queued" and task.retryable is False and task.final is False and task.attempt_count > 0:
+        health_status = "retry_pending"
+    elif task.status == "failed" and task.retryable:
+        health_status = "retryable_failure"
+    elif task.status == "failed":
+        health_status = "terminal_failure"
+    elif task.status == "cancelled":
+        health_status = "cancelled"
+    elif task.status in {"running", "dispatched"}:
+        health_status = "in_progress"
+    else:
+        health_status = "pending"
+
+    return {
+        "health_status": health_status,
+        "can_retry_now": bool(task.status == "failed" and task.retryable and not task.final),
+        "attempts_total": len(attempts),
+        "attempts_failed": len([item for item in attempts if getattr(item, "status", None) == "failed"]),
+        "attempts_completed": len([item for item in attempts if getattr(item, "status", None) == "completed"]),
+        "latest_failed_attempt": _record_to_dict(latest_failed_attempt) if latest_failed_attempt is not None else None,
     }
 
 

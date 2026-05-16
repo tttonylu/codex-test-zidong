@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from nas_control_plane.server import create_server
+from nas_control_plane.services import build_chat_action_plan
 from shared.protocol import ActionResultPayload, ScriptRunPayload, TaskAssignmentPayload, TaskControlPayload
 from terminal_agent.adapters import NasControlPlaneClient
 
@@ -32,7 +33,12 @@ def main() -> None:
                 terminal_id="terminal-report",
                 instance_id="instance-report",
                 script_name="chat",
-                parameters={"target_handle": "report_user", "retry_limit": 1},
+                parameters={
+                    "target_handle": "report_user",
+                    "retry_limit": 1,
+                    "annotate_remark": True,
+                    "action_plan": build_chat_action_plan(target_handle="report_user", annotate_remark=True),
+                },
                 priority=2,
             )
         )
@@ -118,9 +124,17 @@ def main() -> None:
                     "attempt_statuses": [item["status"] for item in report["attempts"]],
                     "attempt_step_counts": [item["step_count"] for item in report["attempts"]],
                     "action_summary_count": report["action_summary"]["action_count"],
+                    "action_summary_names": report["action_summary"]["action_names"],
                     "failed_step_names": [item["failed_step_name"] for item in report["attempts"]],
                     "failure_categories": [item["failure_category"] for item in report["attempts"]],
                     "recommended_action": report["action_summary"]["recommended_action"],
+                    "health_status": report["diagnostics"]["health_status"],
+                    "can_retry_now": report["diagnostics"]["can_retry_now"],
+                    "latest_failed_attempt_status": (
+                        report["diagnostics"]["latest_failed_attempt"]["status"]
+                        if report["diagnostics"]["latest_failed_attempt"]
+                        else None
+                    ),
                 },
                 separators=(",", ":"),
             )

@@ -6,7 +6,8 @@ import argparse
 import json
 from typing import Any
 
-from shared.protocol import TaskControlPayload
+from nas_control_plane.services import build_chat_action_plan, build_follow_action_plan, build_probe_action_plan
+from shared.protocol import TaskAssignmentPayload, TaskControlPayload
 from terminal_agent.adapters import NasControlPlaneClient
 
 
@@ -53,6 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     task_report_parser = subparsers.add_parser("task-report", help="Show a combined diagnostic report for one task")
     task_report_parser.add_argument("--task-id", required=True, help="Task id to inspect")
+    task_report_parser.add_argument("--raw", action="store_true", help="Print the full JSON report")
     task_report_parser.set_defaults(handler=_handle_task_report)
 
     logs_parser = subparsers.add_parser("logs", help="List or get logs")
@@ -74,6 +76,21 @@ def build_parser() -> argparse.ArgumentParser:
     retry_parser.add_argument("--requested-by", default="cli", help="Operator identifier")
     retry_parser.set_defaults(handler=_handle_retry_task)
 
+    create_follow_parser = subparsers.add_parser("create-follow-task", help="Create a standardized follow task")
+    _add_standard_task_options(create_follow_parser)
+    create_follow_parser.add_argument("--target-handle", required=True, help="Target handle for the follow task")
+    create_follow_parser.set_defaults(handler=_handle_create_follow_task)
+
+    create_chat_parser = subparsers.add_parser("create-chat-task", help="Create a standardized chat task")
+    _add_standard_task_options(create_chat_parser)
+    create_chat_parser.add_argument("--target-handle", required=True, help="Target handle for the chat task")
+    create_chat_parser.set_defaults(handler=_handle_create_chat_task)
+
+    create_probe_parser = subparsers.add_parser("create-probe-task", help="Create a standardized probe task")
+    _add_standard_task_options(create_probe_parser)
+    create_probe_parser.add_argument("--target-url", required=True, help="Target URL for the probe task")
+    create_probe_parser.set_defaults(handler=_handle_create_probe_task)
+
     return parser
 
 
@@ -84,7 +101,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     client = NasControlPlaneClient(args.base_url)
     payload = args.handler(client, args)
-    print(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True))
+    if getattr(args, "command", None) == "task-report" and not getattr(args, "raw", False):
+        print(_format_task_report(payload))
+    else:
+        print(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True))
     return 0
 
 
@@ -160,6 +180,136 @@ def _handle_retry_task(client: NasControlPlaneClient, args: argparse.Namespace) 
             requested_by=args.requested_by,
         )
     )
+
+
+def _add_standard_task_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--task-id", required=True, help="Task id to create")
+    parser.add_argument("--terminal-id", required=True, help="Terminal id to assign")
+    parser.add_argument("--instance-id", help="BitBrowser instance id to target")
+    parser.add_argument("--priority", type=int, default=0, help="Task priority")
+    parser.add_argument("--retry-limit", type=int, default=0, help="Retry limit after the first attempt")
+    parser.add_argument(
+        "--annotate-remark",
+        action="store_true",
+        help="Append an annotate action after navigation",
+    )
+
+
+def _handle_create_follow_task(client: NasControlPlaneClient, args: argparse.Namespace) -> dict[str, Any]:
+    parameters = {
+        "target_handle": args.target_handle,
+        "retry_limit": args.retry_limit,
+        "annotate_remark": bool(args.annotate_remark),
+        "action_plan": build_follow_action_plan(
+            target_handle=args.target_handle,
+            annotate_remark=bool(args.annotate_remark),
+        ),
+    }
+    return client.create_task(
+        TaskAssignmentPayload(
+            task_id=args.task_id,
+            terminal_id=args.terminal_id,
+            instance_id=args.instance_id,
+            script_name="follow",
+            parameters=parameters,
+            priority=args.priority,
+        )
+    )
+
+
+def _handle_create_chat_task(client: NasControlPlaneClient, args: argparse.Namespace) -> dict[str, Any]:
+    parameters = {
+        "target_handle": args.target_handle,
+        "retry_limit": args.retry_limit,
+        "annotate_remark": bool(args.annotate_remark),
+        "action_plan": build_chat_action_plan(
+            target_handle=args.target_handle,
+            annotate_remark=bool(args.annotate_remark),
+        ),
+    }
+    return client.create_task(
+        TaskAssignmentPayload(
+            task_id=args.task_id,
+            terminal_id=args.terminal_id,
+            instance_id=args.instance_id,
+            script_name="chat",
+            parameters=parameters,
+            priority=args.priority,
+        )
+    )
+
+
+def _handle_create_probe_task(client: NasControlPlaneClient, args: argparse.Namespace) -> dict[str, Any]:
+    parameters = {
+        "target_url": args.target_url,
+        "retry_limit": args.retry_limit,
+        "annotate_remark": bool(args.annotate_remark),
+        "action_plan": build_probe_action_plan(
+            target_url=args.target_url,
+            annotate_remark=bool(args.annotate_remark),
+        ),
+    }
+    return client.create_task(
+        TaskAssignmentPayload(
+            task_id=args.task_id,
+            terminal_id=args.terminal_id,
+            instance_id=args.instance_id,
+            script_name="probe",
+            parameters=parameters,
+            priority=args.priority,
+        )
+    )
+
+
+def _format_task_report(report: dict[str, Any]) -> str:
+    task = dict(report.get("task") or {})
+    diagnostics = dict(report.get("diagnostics") or {})
+    latest_log = dict(report.get("latest_log") or {})
+    action_summary = dict(report.get("action_summary") or {})
+    attempts = list(report.get("attempts") or [])
+
+    lines = [
+        f"task_id: {task.get('task_id')}",
+        f"status: {task.get('status')}",
+        f"script: {task.get('script_name')}",
+        f"terminal: {task.get('terminal_id')}",
+        f"health: {diagnostics.get('health_status')}",
+        f"can_retry_now: {diagnostics.get('can_retry_now')}",
+        f"attempts_total: {diagnostics.get('attempts_total')}",
+        f"attempts_failed: {diagnostics.get('attempts_failed')}",
+        f"attempts_completed: {diagnostics.get('attempts_completed')}",
+        f"latest_error_code: {task.get('last_error_code')}",
+        f"latest_error_message: {task.get('last_error_message')}",
+        f"failure_category: {action_summary.get('failure_category')}",
+        f"recommended_action: {action_summary.get('recommended_action')}",
+        f"latest_log_level: {latest_log.get('level')}",
+        f"latest_log_message: {latest_log.get('message')}",
+    ]
+
+    latest_failed_attempt = diagnostics.get("latest_failed_attempt")
+    if isinstance(latest_failed_attempt, dict):
+        lines.extend(
+            [
+                f"latest_failed_attempt_number: {latest_failed_attempt.get('attempt_number')}",
+                f"latest_failed_attempt_status: {latest_failed_attempt.get('status')}",
+                f"latest_failed_step: {latest_failed_attempt.get('failed_step_name')}",
+                f"latest_failed_run_id: {latest_failed_attempt.get('run_id')}",
+            ]
+        )
+
+    if attempts:
+        lines.append("attempts:")
+        for item in attempts:
+            lines.append(
+                "  "
+                + f"#{item.get('attempt_number')} "
+                + f"status={item.get('status')} "
+                + f"category={item.get('failure_category')} "
+                + f"failed_step={item.get('failed_step_name')} "
+                + f"steps={item.get('step_count')}"
+            )
+
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

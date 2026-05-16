@@ -14,7 +14,6 @@ from nas_control_plane.server import create_server
 from shared.protocol import (
     ActionResultPayload,
     HeartbeatPayload,
-    TaskAssignmentPayload,
     TerminalRegistrationPayload,
 )
 from terminal_agent.adapters import NasControlPlaneClient
@@ -64,25 +63,37 @@ def main() -> None:
                 metadata={"load": "low"},
             )
         )
-        client.create_task(
-            TaskAssignmentPayload(
-                task_id="task-cli-1",
-                terminal_id="terminal-cli",
-                instance_id=None,
-                script_name="follow",
-                parameters={"target_handle": "cli_target", "retry_limit": 1},
-                priority=1,
-            )
+        created_follow = _run_cli(
+            "create-follow-task",
+            "--task-id",
+            "task-cli-1",
+            "--terminal-id",
+            "terminal-cli",
+            "--instance-id",
+            "instance-cli-1",
+            "--target-handle",
+            "cli_target",
+            "--priority",
+            "1",
+            "--retry-limit",
+            "1",
+            "--annotate-remark",
         )
-        client.create_task(
-            TaskAssignmentPayload(
-                task_id="task-cli-2",
-                terminal_id="terminal-cli",
-                instance_id=None,
-                script_name="chat",
-                parameters={"target_handle": "cli_fail", "retry_limit": 2},
-                priority=2,
-            )
+        created_chat = _run_cli(
+            "create-chat-task",
+            "--task-id",
+            "task-cli-2",
+            "--terminal-id",
+            "terminal-cli",
+            "--instance-id",
+            "instance-cli-2",
+            "--target-handle",
+            "cli_fail",
+            "--priority",
+            "2",
+            "--retry-limit",
+            "2",
+            "--annotate-remark",
         )
         client.submit_task_result(
             ActionResultPayload(
@@ -123,13 +134,15 @@ def main() -> None:
         )
         task_events = _run_cli("task-events", "--task-id", "task-cli-2")
         task_attempts = _run_cli("task-attempts", "--task-id", "task-cli-2")
-        task_report = _run_cli("task-report", "--task-id", "task-cli-2")
+        task_report = _run_cli("task-report", "--task-id", "task-cli-2", "--raw")
 
         print(
             json.dumps(
                 {
                     "summary_task_count": summary["tasks"]["task_count"],
                     "terminal_status": terminal["status"],
+                    "follow_action_names": [item["name"] for item in created_follow["parameters"]["action_plan"]],
+                    "chat_action_names": [item["name"] for item in created_chat["parameters"]["action_plan"]],
                     "failed_task_ids": [item["task_id"] for item in failed_tasks["items"]],
                     "cancelled_status": cancelled["status"],
                     "retried_status": retried["status"],
@@ -137,6 +150,7 @@ def main() -> None:
                     "task_event_types": [item["event_type"] for item in task_events["items"]],
                     "task_attempt_statuses": [item["status"] for item in task_attempts["items"]],
                     "task_report_latest_log_level": task_report["latest_log"]["level"] if task_report["latest_log"] else None,
+                    "task_report_action_summary_count": task_report["action_summary"]["action_count"],
                 },
                 separators=(",", ":"),
             )
