@@ -42,6 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     tasks_parser.add_argument("--terminal-id", help="Filter by terminal id")
     tasks_parser.add_argument("--status", help="Filter by task status")
     tasks_parser.add_argument("--script-name", help="Filter by script name")
+    tasks_parser.add_argument("--raw", action="store_true", help="Print the full JSON response")
     tasks_parser.set_defaults(handler=_handle_tasks)
 
     task_events_parser = subparsers.add_parser("task-events", help="List task lifecycle events")
@@ -50,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     task_attempts_parser = subparsers.add_parser("task-attempts", help="List aggregated task attempts")
     task_attempts_parser.add_argument("--task-id", required=True, help="Task id to inspect")
+    task_attempts_parser.add_argument("--raw", action="store_true", help="Print the full JSON response")
     task_attempts_parser.set_defaults(handler=_handle_task_attempts)
 
     task_report_parser = subparsers.add_parser("task-report", help="Show a combined diagnostic report for one task")
@@ -101,8 +103,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     client = NasControlPlaneClient(args.base_url)
     payload = args.handler(client, args)
-    if getattr(args, "command", None) == "task-report" and not getattr(args, "raw", False):
+    command = getattr(args, "command", None)
+    if command == "task-report" and not getattr(args, "raw", False):
         print(_format_task_report(payload))
+    elif command == "tasks" and not getattr(args, "raw", False):
+        print(_format_tasks(payload))
+    elif command == "task-attempts" and not getattr(args, "raw", False):
+        print(_format_task_attempts(payload))
     else:
         print(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True))
     return 0
@@ -285,6 +292,49 @@ def _format_task_report(report: dict[str, Any]) -> str:
                 + f"steps={item.get('step_count')}"
             )
 
+    return "\n".join(lines)
+
+
+def _format_tasks(payload: dict[str, Any]) -> str:
+    task = payload.get("task_id")
+    if task is not None:
+        return _format_tasks({"items": [payload]})
+
+    items = list(payload.get("items") or [])
+    if not items:
+        return "no tasks"
+
+    lines = []
+    for item in items:
+        lines.append(
+            f"{item.get('task_id')} "
+            f"status={item.get('status')} "
+            f"script={item.get('script_name')} "
+            f"terminal={item.get('terminal_id')} "
+            f"attempts={item.get('attempt_count')}/{item.get('max_attempts')} "
+            f"retryable={item.get('retryable')} "
+            f"final={item.get('final')}"
+        )
+    return "\n".join(lines)
+
+
+def _format_task_attempts(payload: dict[str, Any]) -> str:
+    items = list(payload.get("items") or [])
+    if not items:
+        return "no attempts"
+
+    lines = []
+    for item in items:
+        lines.append(
+            f"#{item.get('attempt_number')} "
+            f"status={item.get('status')} "
+            f"run_id={item.get('run_id')} "
+            f"category={item.get('failure_category')} "
+            f"failed_step={item.get('failed_step_name')} "
+            f"steps={item.get('step_count')} "
+            f"retryable={item.get('retryable')} "
+            f"final={item.get('final')}"
+        )
     return "\n".join(lines)
 
 

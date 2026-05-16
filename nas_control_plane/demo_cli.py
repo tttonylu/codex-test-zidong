@@ -113,7 +113,7 @@ def main() -> None:
 
         summary = _run_cli("summary")
         terminal = _run_cli("terminals", "--terminal-id", "terminal-cli")
-        failed_tasks = _run_cli("tasks", "--status", "failed")
+        failed_tasks = _run_cli("tasks", "--status", "failed", "--raw")
         cancelled = _run_cli(
             "cancel-task",
             "--task-id",
@@ -133,7 +133,7 @@ def main() -> None:
             "cli-user",
         )
         task_events = _run_cli("task-events", "--task-id", "task-cli-2")
-        task_attempts = _run_cli("task-attempts", "--task-id", "task-cli-2")
+        task_attempts = _run_cli("task-attempts", "--task-id", "task-cli-2", "--raw")
         task_report = _run_cli("task-report", "--task-id", "task-cli-2", "--raw")
 
         print(
