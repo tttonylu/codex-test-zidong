@@ -1069,6 +1069,20 @@ def _render_dashboard_page() -> str:
       return query.toString() ? "/logs?" + query.toString() : "/logs";
     }
 
+    function syncTaskFilterTerminal(terminalId) {
+      document.getElementById("filter-terminal").value = terminalId || "";
+    }
+
+    function syncLogFilterTerminal(terminalId) {
+      document.getElementById("log-terminal-filter").value = terminalId || "";
+    }
+
+    function highlightRows(selector, dataKey, selectedValue) {
+      for (const row of document.querySelectorAll(selector)) {
+        row.classList.toggle("active", row.dataset[dataKey] === selectedValue);
+      }
+    }
+
     function generateTaskId(scriptName) {
       return "task-" + scriptName + "-" + Date.now();
     }
@@ -1260,7 +1274,7 @@ def _render_dashboard_page() -> str:
           </tr>`;
       }).join("");
       for (const row of body.querySelectorAll(".task-row")) {
-        row.addEventListener("click", () => loadTaskReport(row.dataset.taskId));
+        row.addEventListener("click", () => loadTaskReport(row.dataset.taskId, { syncRelations: true }));
       }
     }
 
@@ -1283,7 +1297,7 @@ def _render_dashboard_page() -> str:
           </tr>`;
       }).join("");
       for (const row of body.querySelectorAll(".terminal-row")) {
-        row.addEventListener("click", () => loadTerminalDetail(row.dataset.terminalId, { syncLogFilter: true }));
+        row.addEventListener("click", () => loadTerminalDetail(row.dataset.terminalId, { syncLogFilter: true, syncTaskFilter: true }));
       }
     }
 
@@ -1307,7 +1321,7 @@ def _render_dashboard_page() -> str:
           </tr>`;
       }).join("");
       for (const row of body.querySelectorAll(".log-row")) {
-        row.addEventListener("click", () => loadLogDetail(row.dataset.logId));
+        row.addEventListener("click", () => loadLogDetail(row.dataset.logId, { syncRelations: true }));
       }
     }
 
@@ -1316,8 +1330,21 @@ def _render_dashboard_page() -> str:
       state.selectedTaskId = taskId;
       renderTaskDetail(report);
       if (!options.silent) document.getElementById("detail-subtitle").textContent = "\\u5f53\\u524d\\u4efb\\u52a1\\uff1a" + taskId;
-      for (const row of document.querySelectorAll(".task-row")) {
-        row.classList.toggle("active", row.dataset.taskId === state.selectedTaskId);
+      highlightRows(".task-row", "taskId", state.selectedTaskId);
+      if (options.syncRelations) {
+        const terminalId = report?.task?.terminal_id || "";
+        if (terminalId) {
+          await loadTerminalDetail(terminalId, { silent: true, syncTaskFilter: true, syncLogFilter: true });
+        }
+        const latestLogId = report?.latest_log?.log_id || null;
+        if (latestLogId) {
+          await loadLogDetail(latestLogId, { silent: true });
+        } else {
+          state.selectedLogId = null;
+          document.getElementById("log-detail-subtitle").textContent = TEXT.logSelect;
+          document.getElementById("log-detail-body").textContent = "\\u8be5\\u4efb\\u52a1\\u6682\\u65e0\\u5173\\u8054\\u65e5\\u5fd7\\u3002";
+          highlightRows(".log-row", "logId", state.selectedLogId);
+        }
       }
     }
 
@@ -1373,13 +1400,13 @@ def _render_dashboard_page() -> str:
         getJson("/logs?terminal_id=" + encodeURIComponent(terminalId)),
       ]);
       state.selectedTerminalId = terminalId;
-      if (options.syncLogFilter) document.getElementById("log-terminal-filter").value = terminalId;
+      if (options.syncLogFilter) syncLogFilterTerminal(terminalId);
+      if (options.syncTaskFilter) syncTaskFilterTerminal(terminalId);
       renderTerminalDetail(terminal, instances.items || [], logs.items || []);
       document.getElementById("terminal-detail-subtitle").textContent = "\\u5f53\\u524d\\u7ec8\\u7aef\\uff1a" + terminalId;
-      for (const row of document.querySelectorAll(".terminal-row")) {
-        row.classList.toggle("active", row.dataset.terminalId === state.selectedTerminalId);
-      }
+      highlightRows(".terminal-row", "terminalId", state.selectedTerminalId);
       if (options.syncLogFilter) await refreshLogs();
+      if (options.syncTaskFilter) await refreshTasks();
     }
 
     function renderTerminalDetail(terminal, instances, logs) {
@@ -1408,15 +1435,20 @@ def _render_dashboard_page() -> str:
         <div class="detail-section"><h3>\\u6700\\u8fd1\\u65e5\\u5fd7</h3><div class="timeline">${logHtml}</div></div>`;
     }
 
+    async function refreshTasks() {
+      const tasks = await getJson(currentTaskQuery());
+      renderTasks(tasks.items || []);
+    }
+
     async function refreshLogs() {
       const logs = await getJson(currentLogQuery());
       renderLogs(logs.items || []);
     }
 
-    async function loadLogDetail(logId) {
+    async function loadLogDetail(logId, options = {}) {
       const log = await getJson("/logs/" + encodeURIComponent(logId));
       state.selectedLogId = logId;
-      document.getElementById("log-detail-subtitle").textContent = "\\u5f53\\u524d\\u65e5\\u5fd7\\uff1a" + logId;
+      if (!options.silent) document.getElementById("log-detail-subtitle").textContent = "\\u5f53\\u524d\\u65e5\\u5fd7\\uff1a" + logId;
       document.getElementById("log-detail-body").innerHTML = `
         <div class="detail-grid">
           <div class="kv"><div class="k">log_id</div><div class="v code">${escapeHtml(log.log_id || "-")}</div></div>
@@ -1428,8 +1460,14 @@ def _render_dashboard_page() -> str:
         </div>
         <div class="detail-section"><h3>message</h3><div class="timeline-item">${escapeHtml(log.message || "-")}</div></div>
         <div class="detail-section"><h3>details</h3>${jsonBlock(log.details || {})}</div>`;
-      for (const row of document.querySelectorAll(".log-row")) {
-        row.classList.toggle("active", row.dataset.logId === state.selectedLogId);
+      highlightRows(".log-row", "logId", state.selectedLogId);
+      if (options.syncRelations) {
+        if (log.terminal_id) {
+          await loadTerminalDetail(log.terminal_id, { silent: true, syncTaskFilter: true, syncLogFilter: true });
+        }
+        if (log.task_id) {
+          await loadTaskReport(log.task_id, { silent: true });
+        }
       }
     }
 
