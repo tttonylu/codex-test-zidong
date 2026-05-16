@@ -16,10 +16,10 @@ from nas_control_plane.services import (
     SqliteAuditLogRepository,
     SqliteStateStore,
     SqliteTaskEventRepository,
-    TaskDispatchService,
     SqliteTaskRepository,
-    TerminalRegistryService,
     SqliteTerminalStateRepository,
+    TaskDispatchService,
+    TerminalRegistryService,
     build_chat_action_plan,
     build_follow_action_plan,
     build_probe_action_plan,
@@ -545,7 +545,7 @@ def _build_task_diagnostics(task: Any, attempts: list[Any]) -> dict[str, Any]:
 
 
 def _render_dashboard_page() -> str:
-    """返回一个内嵌的最小运营页面，便于直接查看和操作任务。"""
+    """返回一个内嵌的 NAS 运营视图页面。"""
 
     return """<!doctype html>
 <html lang="zh-CN">
@@ -555,15 +555,13 @@ def _render_dashboard_page() -> str:
   <title>NAS 运营视图</title>
   <style>
     :root {
-      --bg: #f4efe7;
-      --panel: #fffaf3;
-      --panel-strong: #fff;
+      --panel: rgba(255, 251, 245, 0.92);
+      --panel-strong: #fffdf9;
       --line: #dccfb8;
       --text: #1f2937;
       --muted: #6b7280;
       --accent: #b45309;
-      --accent-soft: #f59e0b;
-      --good: #166534;
+      --accent-strong: #d97706;
       --warn: #b45309;
       --bad: #b91c1c;
       --shadow: 0 14px 40px rgba(120, 53, 15, 0.10);
@@ -581,7 +579,7 @@ def _render_dashboard_page() -> str:
       font-family: var(--sans);
     }
     .shell {
-      max-width: 1480px;
+      max-width: 1520px;
       margin: 0 auto;
       padding: 24px;
     }
@@ -601,6 +599,8 @@ def _render_dashboard_page() -> str:
     .hero p {
       margin: 0;
       color: var(--muted);
+      max-width: 720px;
+      line-height: 1.6;
     }
     .toolbar {
       display: flex;
@@ -610,7 +610,7 @@ def _render_dashboard_page() -> str:
       justify-content: flex-end;
     }
     .panel {
-      background: rgba(255, 250, 243, 0.92);
+      background: var(--panel);
       border: 1px solid rgba(220, 207, 184, 0.9);
       box-shadow: var(--shadow);
       border-radius: var(--radius);
@@ -641,60 +641,6 @@ def _render_dashboard_page() -> str:
       color: var(--muted);
       line-height: 1.5;
     }
-    .filters {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr 1fr auto auto;
-      gap: 10px;
-      padding: 16px;
-      margin-bottom: 18px;
-    }
-    input, select, button, textarea {
-      font: inherit;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: var(--panel-strong);
-      color: var(--text);
-    }
-    input, select, textarea {
-      width: 100%;
-      padding: 10px 12px;
-    }
-    button {
-      padding: 10px 14px;
-      cursor: pointer;
-      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
-    }
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 18px rgba(120, 53, 15, 0.12);
-    }
-    button.primary {
-      background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
-      color: #fff;
-      border-color: #d97706;
-    }
-    button.ghost {
-      background: rgba(255, 255, 255, 0.8);
-    }
-    button.warn {
-      background: #fff7ed;
-      border-color: #fdba74;
-      color: var(--warn);
-    }
-    button.danger {
-      background: #fef2f2;
-      border-color: #fca5a5;
-      color: var(--bad);
-    }
-    .layout {
-      display: grid;
-      grid-template-columns: 1.45fr 1fr;
-      gap: 18px;
-      align-items: start;
-    }
-    .list-panel, .detail-panel, .terminal-panel {
-      overflow: hidden;
-    }
     .panel-head {
       display: flex;
       justify-content: space-between;
@@ -709,6 +655,129 @@ def _render_dashboard_page() -> str:
     .panel-head .sub {
       color: var(--muted);
       font-size: 12px;
+      line-height: 1.5;
+    }
+    .creation-grid, .filters-grid {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+    }
+    .creation-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .filters-grid {
+      grid-template-columns: 1.2fr 1fr 1fr auto auto;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-wide {
+      grid-column: span 2;
+    }
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    input, select, button, textarea {
+      font: inherit;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      color: var(--text);
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+    .toggle {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-strong);
+    }
+    .toggle input {
+      width: auto;
+      margin: 0;
+    }
+    button {
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(120, 53, 15, 0.12);
+    }
+    button.primary {
+      background: linear-gradient(135deg, var(--accent-strong) 0%, #f59e0b 100%);
+      color: #fff;
+      border-color: var(--accent-strong);
+    }
+    button.ghost {
+      background: rgba(255, 255, 255, 0.8);
+    }
+    button.warn {
+      background: #fff7ed;
+      border-color: #fdba74;
+      color: var(--warn);
+    }
+    button.danger {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: var(--bad);
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+      transform: none;
+      box-shadow: none;
+    }
+    .creation-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 16px 16px;
+    }
+    .feedback {
+      margin: 0 16px 16px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      display: none;
+    }
+    .feedback.show { display: block; }
+    .feedback.info {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .feedback.success {
+      background: #ecfdf5;
+      color: #166534;
+      border: 1px solid #a7f3d0;
+    }
+    .feedback.error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 18px;
+      align-items: start;
+      margin-top: 18px;
     }
     .table-wrap {
       overflow: auto;
@@ -732,6 +801,7 @@ def _render_dashboard_page() -> str:
       z-index: 1;
       color: var(--muted);
       font-weight: 600;
+      white-space: nowrap;
     }
     tr.task-row {
       cursor: pointer;
@@ -822,6 +892,7 @@ def _render_dashboard_page() -> str:
       background: rgba(255, 255, 255, 0.66);
       border: 1px solid rgba(220, 207, 184, 0.75);
       font-size: 13px;
+      line-height: 1.55;
     }
     .timeline-item .meta {
       color: var(--muted);
@@ -835,12 +906,14 @@ def _render_dashboard_page() -> str:
       color: var(--muted);
       font-size: 13px;
       padding: 16px;
+      line-height: 1.6;
     }
     .code {
       font-family: var(--mono);
       font-size: 12px;
     }
-    @media (max-width: 1120px) {
+    @media (max-width: 1240px) {
+      .creation-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .layout { grid-template-columns: 1fr; }
       .detail-panel { position: static; }
@@ -848,9 +921,15 @@ def _render_dashboard_page() -> str:
     @media (max-width: 760px) {
       .shell { padding: 14px; }
       .hero { flex-direction: column; }
-      .summary-grid { grid-template-columns: 1fr; }
-      .filters { grid-template-columns: 1fr; }
-      .detail-grid, .detail-actions { grid-template-columns: 1fr; }
+      .summary-grid, .creation-grid, .filters-grid, .detail-grid, .detail-actions {
+        grid-template-columns: 1fr;
+      }
+      .field-wide {
+        grid-column: auto;
+      }
+      .creation-actions {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
@@ -859,7 +938,7 @@ def _render_dashboard_page() -> str:
     <section class="hero">
       <div>
         <h1>NAS 运营视图</h1>
-        <p>用于查看终端状态、筛选任务、分析失败原因，并直接执行取消或重试。</p>
+        <p>用于查看终端状态、筛选任务、分析失败原因，并直接创建、取消或重试任务。当前页面直接复用现有 NAS control API，不增加额外中间层。</p>
       </div>
       <div class="toolbar">
         <button class="ghost" id="refresh-all">刷新全部</button>
@@ -874,31 +953,96 @@ def _render_dashboard_page() -> str:
       <div class="panel summary-card"><div class="label">日志总数</div><div class="value">-</div></div>
     </section>
 
-    <section class="panel filters">
-      <input id="filter-terminal" placeholder="按 terminal_id 筛选" />
-      <select id="filter-status">
-        <option value="">全部任务状态</option>
-        <option value="queued">queued / 排队中</option>
-        <option value="dispatched">dispatched / 已派发</option>
-        <option value="running">running / 执行中</option>
-        <option value="completed">completed / 已完成</option>
-        <option value="failed">failed / 失败</option>
-        <option value="cancelled">cancelled / 已取消</option>
-      </select>
-      <select id="filter-script">
-        <option value="">全部脚本类型</option>
-        <option value="follow">follow</option>
-        <option value="chat">chat</option>
-        <option value="probe">probe</option>
-        <option value="extract">extract</option>
-      </select>
-      <button class="ghost" id="apply-filters">应用筛选</button>
-      <button class="ghost" id="clear-filters">清空筛选</button>
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>创建任务</h2>
+          <div class="sub">支持 `follow`、`chat`、`probe` 三类任务，并在前端按统一规则构造 `action_plan` 后提交到 `/tasks`。</div>
+        </div>
+      </div>
+      <div class="creation-grid">
+        <div class="field">
+          <label for="create-script-name">任务类型</label>
+          <select id="create-script-name">
+            <option value="follow">follow</option>
+            <option value="chat">chat</option>
+            <option value="probe">probe</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="create-task-id">任务 ID</label>
+          <input id="create-task-id" placeholder="留空则自动生成" />
+        </div>
+        <div class="field">
+          <label for="create-terminal-id">terminal_id</label>
+          <input id="create-terminal-id" placeholder="例如 terminal-a" />
+        </div>
+        <div class="field">
+          <label for="create-instance-id">instance_id</label>
+          <input id="create-instance-id" placeholder="例如 bb-follow-1" />
+        </div>
+        <div class="field">
+          <label for="create-priority">priority</label>
+          <input id="create-priority" type="number" min="0" value="0" />
+        </div>
+        <div class="field">
+          <label for="create-retry-limit">retry_limit</label>
+          <input id="create-retry-limit" type="number" min="0" value="0" />
+        </div>
+        <div class="field field-wide">
+          <label for="create-target-value" id="create-target-label">目标账号</label>
+          <input id="create-target-value" placeholder="例如 matrix_ops" />
+        </div>
+        <div class="field">
+          <label for="create-requested-by">requested_by</label>
+          <input id="create-requested-by" value="dashboard" />
+        </div>
+        <div class="field">
+          <label for="create-annotate-toggle">附加备注</label>
+          <div class="toggle">
+            <input id="create-annotate-toggle" type="checkbox" />
+            <span>创建任务时附带 remark</span>
+          </div>
+        </div>
+        <div class="field field-wide">
+          <label for="create-note">创建备注</label>
+          <textarea id="create-note" placeholder="可选。用于记录操作背景，不会覆盖 action_plan。"></textarea>
+        </div>
+      </div>
+      <div id="create-feedback" class="feedback"></div>
+      <div class="creation-actions">
+        <button class="ghost" id="create-reset-btn">重置表单</button>
+        <button class="primary" id="create-task-btn">提交任务</button>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+      <div class="filters-grid">
+        <input id="filter-terminal" placeholder="按 terminal_id 筛选" />
+        <select id="filter-status">
+          <option value="">全部任务状态</option>
+          <option value="queued">queued / 排队中</option>
+          <option value="dispatched">dispatched / 已派发</option>
+          <option value="running">running / 执行中</option>
+          <option value="completed">completed / 已完成</option>
+          <option value="failed">failed / 失败</option>
+          <option value="cancelled">cancelled / 已取消</option>
+        </select>
+        <select id="filter-script">
+          <option value="">全部脚本类型</option>
+          <option value="follow">follow</option>
+          <option value="chat">chat</option>
+          <option value="probe">probe</option>
+          <option value="extract">extract</option>
+        </select>
+        <button class="ghost" id="apply-filters">应用筛选</button>
+        <button class="ghost" id="clear-filters">清空筛选</button>
+      </div>
     </section>
 
     <section class="layout">
       <div>
-        <section class="panel list-panel">
+        <section class="panel">
           <div class="panel-head">
             <div>
               <h2>任务列表</h2>
@@ -915,7 +1059,7 @@ def _render_dashboard_page() -> str:
                   <th>状态</th>
                   <th>优先级</th>
                   <th>尝试</th>
-                  <th>最后错误</th>
+                  <th>最后错误码</th>
                   <th>创建时间</th>
                 </tr>
               </thead>
@@ -928,7 +1072,7 @@ def _render_dashboard_page() -> str:
           <div class="panel-head">
             <div>
               <h2>终端概览</h2>
-              <div class="sub">用于快速判断在线情况和负载分布</div>
+              <div class="sub">用于快速判断在线情况与负载分布。</div>
             </div>
           </div>
           <div class="table-wrap">
@@ -958,7 +1102,7 @@ def _render_dashboard_page() -> str:
         </div>
 
         <div style="margin-top: 14px;">
-          <textarea id="control-reason" rows="3" placeholder="操作备注。留空时会使用默认原因。"></textarea>
+          <textarea id="control-reason" rows="3" placeholder="控制备注。留空时会使用默认原因。"></textarea>
         </div>
         <div class="detail-actions">
           <button class="warn" id="retry-task-btn" disabled>重试任务</button>
@@ -981,7 +1125,7 @@ def _render_dashboard_page() -> str:
     function statusBadgeKind(status) {
       if (status === "completed") return "good";
       if (status === "failed" || status === "cancelled") return "bad";
-      if (status === "running" || status === "dispatched") return "running";
+      if (status === "running" || status === "dispatched" || status === "online") return "running";
       if (status === "queued") return "warn";
       return "pending";
     }
@@ -994,6 +1138,8 @@ def _render_dashboard_page() -> str:
         completed: "已完成",
         failed: "失败",
         cancelled: "已取消",
+        online: "在线",
+        offline: "离线",
       };
       return map[status] || status || "-";
     }
@@ -1047,8 +1193,177 @@ def _render_dashboard_page() -> str:
       return query.toString() ? "/tasks?" + query.toString() : "/tasks";
     }
 
+    function generateTaskId(scriptName) {
+      return "task-" + scriptName + "-" + Date.now();
+    }
+
+    function buildActionPlan(scriptName, targetValue, annotateRemark) {
+      if (scriptName === "follow") {
+        const plan = [
+          {
+            name: "navigate_profile",
+            kind: "navigate",
+            params: { target_url: "https://x.com/" + targetValue, queue: true },
+          },
+        ];
+        if (annotateRemark) {
+          plan.push({
+            name: "annotate_follow_target",
+            kind: "annotate",
+            params: { remark: "follow:" + targetValue },
+          });
+        }
+        return plan;
+      }
+      if (scriptName === "chat") {
+        const plan = [
+          {
+            name: "navigate_compose",
+            kind: "navigate",
+            params: { target_url: "https://x.com/messages/compose?recipient_id=" + targetValue, queue: true },
+          },
+        ];
+        if (annotateRemark) {
+          plan.push({
+            name: "annotate_chat_target",
+            kind: "annotate",
+            params: { remark: "chat:" + targetValue },
+          });
+        }
+        return plan;
+      }
+      const plan = [
+        {
+          name: "navigate_probe_target",
+          kind: "navigate",
+          params: { target_url: targetValue, queue: true },
+        },
+      ];
+      if (annotateRemark) {
+        plan.push({
+          name: "annotate_probe_target",
+          kind: "annotate",
+          params: { remark: "probe:" + targetValue },
+        });
+      }
+      return plan;
+    }
+
+    function buildTaskPayloadFromForm() {
+      const scriptName = document.getElementById("create-script-name").value;
+      const taskId = document.getElementById("create-task-id").value.trim() || generateTaskId(scriptName);
+      const terminalId = document.getElementById("create-terminal-id").value.trim();
+      const instanceIdRaw = document.getElementById("create-instance-id").value.trim();
+      const targetValue = document.getElementById("create-target-value").value.trim();
+      const priority = Number(document.getElementById("create-priority").value || 0);
+      const retryLimit = Number(document.getElementById("create-retry-limit").value || 0);
+      const annotateRemark = document.getElementById("create-annotate-toggle").checked;
+      const requestedBy = document.getElementById("create-requested-by").value.trim() || "dashboard";
+      const note = document.getElementById("create-note").value.trim();
+
+      if (!terminalId) {
+        throw new Error("terminal_id 不能为空");
+      }
+      if (!targetValue) {
+        throw new Error(scriptName === "probe" ? "目标 URL 不能为空" : "目标账号不能为空");
+      }
+
+      const parameters = {
+        retry_limit: retryLimit,
+        annotate_remark: annotateRemark,
+        action_plan: buildActionPlan(scriptName, targetValue, annotateRemark),
+      };
+      if (scriptName === "probe") {
+        parameters.target_url = targetValue;
+      } else {
+        parameters.target_handle = targetValue;
+      }
+      if (note) {
+        parameters.dashboard_note = note;
+      }
+      if (requestedBy) {
+        parameters.requested_by = requestedBy;
+      }
+
+      const payload = {
+        task_id: taskId,
+        terminal_id: terminalId,
+        script_name: scriptName,
+        parameters,
+        priority,
+      };
+      if (instanceIdRaw) {
+        payload.instance_id = instanceIdRaw;
+      }
+      return payload;
+    }
+
+    function setCreateFeedback(message, kind) {
+      const node = document.getElementById("create-feedback");
+      node.textContent = message;
+      node.className = "feedback show " + kind;
+    }
+
+    function clearCreateFeedback() {
+      const node = document.getElementById("create-feedback");
+      node.textContent = "";
+      node.className = "feedback";
+    }
+
+    function syncCreateFormByScript() {
+      const scriptName = document.getElementById("create-script-name").value;
+      const targetLabel = document.getElementById("create-target-label");
+      const targetInput = document.getElementById("create-target-value");
+      if (scriptName === "probe") {
+        targetLabel.textContent = "目标 URL";
+        targetInput.placeholder = "例如 https://x.com/home";
+      } else if (scriptName === "chat") {
+        targetLabel.textContent = "目标账号 / recipient_id";
+        targetInput.placeholder = "例如 risk_user";
+      } else {
+        targetLabel.textContent = "目标账号";
+        targetInput.placeholder = "例如 matrix_ops";
+      }
+      if (!document.getElementById("create-task-id").value.trim()) {
+        document.getElementById("create-task-id").placeholder = "留空则自动生成，例如 " + generateTaskId(scriptName);
+      }
+    }
+
+    async function createTaskFromForm() {
+      try {
+        const payload = buildTaskPayloadFromForm();
+        setCreateFeedback("正在创建任务 " + payload.task_id + " ...", "info");
+        const task = await getJson("/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        setCreateFeedback("任务已创建: " + task.task_id, "success");
+        state.selectedTaskId = task.task_id;
+        document.getElementById("create-task-id").value = "";
+        await refreshAll();
+        await loadTaskReport(task.task_id, { silent: false });
+      } catch (error) {
+        setCreateFeedback(error.message || String(error), "error");
+      }
+    }
+
+    function resetCreateForm() {
+      document.getElementById("create-script-name").value = "follow";
+      document.getElementById("create-task-id").value = "";
+      document.getElementById("create-terminal-id").value = "";
+      document.getElementById("create-instance-id").value = "";
+      document.getElementById("create-target-value").value = "";
+      document.getElementById("create-priority").value = "0";
+      document.getElementById("create-retry-limit").value = "0";
+      document.getElementById("create-requested-by").value = "dashboard";
+      document.getElementById("create-annotate-toggle").checked = false;
+      document.getElementById("create-note").value = "";
+      clearCreateFeedback();
+      syncCreateFormByScript();
+    }
+
     async function refreshAll() {
-      // 统一刷新摘要、终端和任务列表，保证运营视图数据同步。
       const [summary, terminals, tasks] = await Promise.all([
         getJson("/summary"),
         getJson("/terminals"),
@@ -1058,7 +1373,18 @@ def _render_dashboard_page() -> str:
       renderTerminals(terminals.items || []);
       renderTasks(tasks.items || []);
       if (state.selectedTaskId) {
-        await loadTaskReport(state.selectedTaskId, { silent: true });
+        try {
+          await loadTaskReport(state.selectedTaskId, { silent: true });
+        } catch (error) {
+          if (String(error.message || error).includes("task not found")) {
+            state.selectedTaskId = null;
+            state.selectedReport = null;
+            document.getElementById("detail-subtitle").textContent = "请选择左侧任务";
+            document.getElementById("detail-body").textContent = "选中的任务已不存在，请重新选择。";
+          } else {
+            throw error;
+          }
+        }
       }
     }
 
@@ -1077,26 +1403,26 @@ def _render_dashboard_page() -> str:
         <div class="panel summary-card">
           <div class="label">任务总数</div>
           <div class="value">${taskCount}</div>
-          <div class="meta">按当前服务端汇总，不受本页筛选影响。</div>
+          <div class="meta">按服务端汇总统计，不受当前筛选影响。</div>
         </div>
         <div class="panel summary-card">
           <div class="label">失败任务</div>
           <div class="value">${failedCount}</div>
-          <div class="meta">建议优先打开失败详情查看可重试性。</div>
+          <div class="meta">建议优先打开失败详情检查可重试性。</div>
         </div>
         <div class="panel summary-card">
           <div class="label">日志总数</div>
           <div class="value">${logCount}</div>
-          <div class="meta">可结合任务详情里的最新日志排查。</div>
+          <div class="meta">可结合任务详情中的最新日志排查。</div>
         </div>
       `;
     }
 
     function renderTasks(items) {
       const body = document.getElementById("task-table-body");
-      document.getElementById("task-list-meta").textContent = `当前筛选结果 ${items.length} 条`;
+      document.getElementById("task-list-meta").textContent = "当前筛选结果 " + items.length + " 条";
       if (!items.length) {
-        body.innerHTML = `<tr><td colspan="8" class="notice">当前没有匹配的任务。</td></tr>`;
+        body.innerHTML = '<tr><td colspan="8" class="notice">当前没有匹配的任务。</td></tr>';
         return;
       }
 
@@ -1124,14 +1450,14 @@ def _render_dashboard_page() -> str:
     function renderTerminals(items) {
       const body = document.getElementById("terminal-table-body");
       if (!items.length) {
-        body.innerHTML = `<tr><td colspan="6" class="notice">当前没有终端注册记录。</td></tr>`;
+        body.innerHTML = '<tr><td colspan="6" class="notice">当前没有终端注册记录。</td></tr>';
         return;
       }
       body.innerHTML = items.map((item) => `
         <tr>
           <td class="code">${escapeHtml(item.terminal_id)}</td>
           <td>${escapeHtml(item.hostname)}</td>
-          <td><span class="badge ${statusBadgeKind(item.status === "online" ? "running" : item.status)}">${escapeHtml(item.status || "-")}</span></td>
+          <td><span class="badge ${statusBadgeKind(item.status)}">${escapeHtml(statusText(item.status))}</span></td>
           <td>${escapeHtml(item.operator_name)}</td>
           <td class="code">${escapeHtml(item.agent_version)}</td>
           <td>${escapeHtml(formatTime(item.last_seen_at))}</td>
@@ -1140,13 +1466,13 @@ def _render_dashboard_page() -> str:
     }
 
     async function loadTaskReport(taskId, options = {}) {
-      const report = await getJson(`/tasks/${encodeURIComponent(taskId)}/report`);
+      const report = await getJson("/tasks/" + encodeURIComponent(taskId) + "/report");
       state.selectedTaskId = taskId;
       state.selectedReport = report;
       renderTaskDetail(report);
       highlightSelectedTask();
       if (!options.silent) {
-        document.getElementById("detail-subtitle").textContent = `当前任务：${taskId}`;
+        document.getElementById("detail-subtitle").textContent = "当前任务：" + taskId;
       }
     }
 
@@ -1171,23 +1497,32 @@ def _render_dashboard_page() -> str:
       const timelineHtml = events.length
         ? events.slice().reverse().map((item) => `
             <div class="timeline-item">
-              <div><strong>${escapeHtml(item.event_type)}</strong> · ${escapeHtml(statusText(item.status))}</div>
+              <div><strong>${escapeHtml(item.event_type)}</strong> | ${escapeHtml(statusText(item.status))}</div>
               <div>${escapeHtml(item.message || "-")}</div>
               <div class="meta">${escapeHtml(formatTime(item.emitted_at))}</div>
             </div>
           `).join("")
-        : `<div class="notice">暂无事件时间线。</div>`;
+        : '<div class="notice">暂无事件时间线。</div>';
 
       const attemptsHtml = attempts.length
         ? attempts.map((item) => `
             <div class="timeline-item">
-              <div><strong>第 ${escapeHtml(item.attempt_number)} 次</strong> · ${escapeHtml(statusText(item.status))}</div>
-              <div>失败分类：${escapeHtml(item.failure_category || "-")} ｜ 失败步骤：${escapeHtml(item.failed_step_name || "-")}</div>
-              <div>错误码：<span class="code">${escapeHtml(item.error_code || "-")}</span> ｜ 步骤数：${escapeHtml(item.step_count || 0)}</div>
-              <div class="meta">run_id=${escapeHtml(item.run_id || "-")} ｜ ${escapeHtml(formatTime(item.finished_at || item.started_at))}</div>
+              <div><strong>第 ${escapeHtml(item.attempt_number)} 次</strong> | ${escapeHtml(statusText(item.status))}</div>
+              <div>失败分类：${escapeHtml(item.failure_category || "-")} | 失败步骤：${escapeHtml(item.failed_step_name || "-")}</div>
+              <div>错误码：<span class="code">${escapeHtml(item.error_code || "-")}</span> | 步骤数：${escapeHtml(item.step_count || 0)}</div>
+              <div class="meta">run_id=${escapeHtml(item.run_id || "-")} | ${escapeHtml(formatTime(item.finished_at || item.started_at))}</div>
             </div>
           `).join("")
-        : `<div class="notice">暂无执行尝试。</div>`;
+        : '<div class="notice">暂无执行尝试。</div>';
+
+      const latestLogHtml = latestLog && Object.keys(latestLog).length
+        ? `
+          <div class="timeline-item">
+            <div><strong>${escapeHtml(latestLog.level || "-")}</strong> | ${escapeHtml(latestLog.message || "-")}</div>
+            <div class="meta">${escapeHtml(formatTime(latestLog.emitted_at))}</div>
+          </div>
+        `
+        : '<div class="notice">暂无日志。</div>';
 
       document.getElementById("detail-body").innerHTML = `
         <div class="detail-grid">
@@ -1204,16 +1539,13 @@ def _render_dashboard_page() -> str:
         <div class="detail-section">
           <h3>计划动作</h3>
           <div class="chips">
-            ${actionNames.length ? actionNames.map((name) => `<span class="chip">${escapeHtml(name)}</span>`).join("") : `<span class="chip">暂无动作计划</span>`}
+            ${actionNames.length ? actionNames.map((name) => `<span class="chip">${escapeHtml(name)}</span>`).join("") : '<span class="chip">暂无动作计划</span>'}
           </div>
         </div>
 
         <div class="detail-section">
           <h3>最新日志</h3>
-          <div class="timeline-item">
-            <div><strong>${escapeHtml(latestLog.level || "-")}</strong> · ${escapeHtml(latestLog.message || "-")}</div>
-            <div class="meta">${escapeHtml(formatTime(latestLog.emitted_at))}</div>
-          </div>
+          ${latestLogHtml}
         </div>
 
         <div class="detail-section">
@@ -1230,10 +1562,8 @@ def _render_dashboard_page() -> str:
 
     async function controlSelectedTask(action) {
       if (!state.selectedTaskId) return;
-      // 操作接口直接复用现有 NAS control API，避免再造一层服务端代理。
       const reasonInput = document.getElementById("control-reason");
       const reason = reasonInput.value.trim() || (action === "retry" ? "运营页发起重试" : "运营页发起取消");
-      const requestedBy = "dashboard";
       try {
         await getJson("/tasks/control", {
           method: "POST",
@@ -1242,7 +1572,7 @@ def _render_dashboard_page() -> str:
             task_id: state.selectedTaskId,
             action,
             reason,
-            requested_by: requestedBy,
+            requested_by: "dashboard",
           }),
         });
         await refreshAll();
@@ -1253,6 +1583,9 @@ def _render_dashboard_page() -> str:
     }
 
     function bindEvents() {
+      document.getElementById("create-script-name").addEventListener("change", syncCreateFormByScript);
+      document.getElementById("create-task-btn").addEventListener("click", createTaskFromForm);
+      document.getElementById("create-reset-btn").addEventListener("click", resetCreateForm);
       document.getElementById("apply-filters").addEventListener("click", refreshAll);
       document.getElementById("clear-filters").addEventListener("click", async () => {
         document.getElementById("filter-terminal").value = "";
@@ -1265,12 +1598,13 @@ def _render_dashboard_page() -> str:
       document.getElementById("cancel-task-btn").addEventListener("click", () => controlSelectedTask("cancel"));
       document.getElementById("auto-refresh-toggle").addEventListener("click", () => {
         state.autoRefresh = !state.autoRefresh;
-        document.getElementById("auto-refresh-toggle").textContent = `自动刷新：${state.autoRefresh ? "开" : "关"}`;
+        document.getElementById("auto-refresh-toggle").textContent = "自动刷新：" + (state.autoRefresh ? "开" : "关");
       });
     }
 
     async function bootstrap() {
       bindEvents();
+      resetCreateForm();
       await refreshAll();
       state.timerId = window.setInterval(() => {
         if (state.autoRefresh) {
@@ -1280,7 +1614,7 @@ def _render_dashboard_page() -> str:
     }
 
     bootstrap().catch((error) => {
-      document.getElementById("detail-body").innerHTML = `<div class="notice">页面初始化失败：${escapeHtml(error.message || String(error))}</div>`;
+      document.getElementById("detail-body").innerHTML = '<div class="notice">页面初始化失败：' + escapeHtml(error.message || String(error)) + '</div>';
     });
   </script>
 </body>

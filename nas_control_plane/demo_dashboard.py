@@ -1,7 +1,8 @@
-"""启动一个带示例数据的 NAS 运营页，便于本地直接验证中文界面。"""
+"""启动一个带示例数据的 NAS 运营页，便于本地验证中文界面。"""
 
 from __future__ import annotations
 
+import argparse
 import threading
 import time
 from datetime import datetime
@@ -13,18 +14,34 @@ from shared.protocol import ActionResultPayload, HeartbeatPayload, ScriptRunPayl
 from terminal_agent.adapters import NasControlPlaneClient
 
 
-def main() -> None:
-    state_path = Path("nas_control_plane/state.dashboard.demo.sqlite3")
-    if state_path.exists():
-        state_path.unlink()
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="启动带示例数据的 NAS 运营页")
+    parser.add_argument("--port", type=int, default=8783, help="本地 HTTP 端口")
+    parser.add_argument(
+        "--state-path",
+        default=None,
+        help="SQLite 状态文件路径，默认按端口生成",
+    )
+    return parser.parse_args()
 
-    server = create_server(port=8783, state_path=state_path)
+
+def main() -> None:
+    args = _parse_args()
+    state_path = Path(args.state_path) if args.state_path else Path(f"nas_control_plane/state.dashboard.demo.{args.port}.sqlite3")
+    if state_path.exists():
+        try:
+            state_path.unlink()
+        except PermissionError:
+            suffix = datetime.now().strftime("%Y%m%d%H%M%S")
+            state_path = Path(f"nas_control_plane/state.dashboard.demo.{args.port}.{suffix}.sqlite3")
+
+    server = create_server(port=args.port, state_path=state_path)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 
     try:
         time.sleep(0.2)
-        client = NasControlPlaneClient("http://127.0.0.1:8783")
+        client = NasControlPlaneClient(f"http://127.0.0.1:{args.port}")
 
         client.register_terminal(
             TerminalRegistrationPayload(
@@ -152,7 +169,7 @@ def main() -> None:
             )
         )
 
-        print("运营页已启动: http://127.0.0.1:8783/")
+        print(f"运营页已启动: http://127.0.0.1:{args.port}/")
         print("按 Ctrl+C 退出")
         server_thread.join()
     except KeyboardInterrupt:
