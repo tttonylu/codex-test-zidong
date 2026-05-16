@@ -32,6 +32,15 @@ class WorkerStepResult:
     details: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass(slots=True)
+class BrowserAction:
+    """Represents one high-level browser action in a worker plan."""
+
+    name: str
+    kind: str
+    params: dict[str, Any] = field(default_factory=dict)
+
+
 class WorkerExecutionError(RuntimeError):
     """Structured worker failure with partial execution context."""
 

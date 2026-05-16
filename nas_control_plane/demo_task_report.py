@@ -116,7 +116,11 @@ def main() -> None:
                     "latest_log_level": report["latest_log"]["level"] if report["latest_log"] else None,
                     "latest_log_error_code": report["latest_log"]["details"].get("error_code") if report["latest_log"] else None,
                     "attempt_statuses": [item["status"] for item in report["attempts"]],
-                    "attempt_step_counts": [item["details"].get("step_count") for item in report["attempts"]],
+                    "attempt_step_counts": [item["step_count"] for item in report["attempts"]],
+                    "action_summary_count": report["action_summary"]["action_count"],
+                    "failed_step_names": [item["failed_step_name"] for item in report["attempts"]],
+                    "failure_categories": [item["failure_category"] for item in report["attempts"]],
+                    "recommended_action": report["action_summary"]["recommended_action"],
                 },
                 separators=(",", ":"),
             )

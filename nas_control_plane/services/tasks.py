@@ -130,6 +130,20 @@ class TaskDispatchService:
             attempt.error_message = _string_detail(event.details, "error") or event.message if event.status != "completed" else None
             attempt.retryable = _bool_detail(event.details, "retryable")
             attempt.final = _bool_detail(event.details, "final")
+            attempt.step_count = _int_detail(event.details, "step_count") or 0
+            failed_step = _last_failed_step(event.details)
+            if failed_step is not None:
+                attempt.failed_step_name = _string_detail(failed_step, "name")
+                attempt.failed_step_status = _string_detail(failed_step, "status")
+            (
+                attempt.failure_category,
+                attempt.recommended_action,
+            ) = _classify_attempt_failure(
+                error_code=attempt.error_code,
+                error_message=attempt.error_message,
+                failed_step_name=attempt.failed_step_name,
+                retryable=attempt.retryable,
+            )
             attempt.details = dict(event.details)
 
         return attempts
@@ -471,3 +485,51 @@ def _datetime_detail(details: dict[str, object], key: str) -> datetime | None:
     if value is None:
         return None
     return datetime.fromisoformat(str(value))
+
+
+def _int_detail(details: dict[str, object], key: str) -> int | None:
+    value = details.get(key)
+    if value is None:
+        return None
+    return int(value)
+
+
+def _last_failed_step(details: dict[str, object]) -> dict[str, object] | None:
+    raw_steps = details.get("steps")
+    if not isinstance(raw_steps, list):
+        return None
+    failed_steps = [step for step in raw_steps if isinstance(step, dict) and step.get("status") == "failed"]
+    if not failed_steps:
+        return None
+    return failed_steps[-1]
+
+
+def _classify_attempt_failure(
+    *,
+    error_code: str | None,
+    error_message: str | None,
+    failed_step_name: str | None,
+    retryable: bool | None,
+) -> tuple[str | None, str | None]:
+    if error_code is None and error_message is None and failed_step_name is None:
+        return None, None
+
+    code = (error_code or "").lower()
+    message = (error_message or "").lower()
+    failed_step = (failed_step_name or "").lower()
+
+    if code.startswith("bitbrowser.") or failed_step == "open_browser":
+        return "bitbrowser", "Check BitBrowser availability, then retry the task."
+    if code.startswith("worker.missing_") or "requires instance_id" in message or "requires bitbrowser_client" in message:
+        return "input", "Fix task inputs or runtime dependencies before retrying."
+    if code == "worker.unsupported_script":
+        return "unsupported", "Use a supported script name or implement the missing worker."
+    if "timeout" in message or "rate limited" in message or "429" in message:
+        if retryable:
+            return "network", "Wait for recovery or cooldown, then retry the task."
+        return "network", "Investigate connectivity or platform throttling before retrying."
+    if code.endswith(".execution_failed") or code.startswith("worker."):
+        return "worker", "Inspect worker execution details and failed steps before retrying."
+    if retryable:
+        return "transient", "Review the latest error and retry when the dependency is healthy."
+    return "unknown", "Inspect the task report details and audit log before taking action."

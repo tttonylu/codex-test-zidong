@@ -68,6 +68,11 @@ class BitBrowserClient:
 
         return self.open_browser(browser_id=browser_id, args=[target_url], queue=queue)
 
+    def navigate(self, browser_id: str, target_url: str, queue: bool = True) -> dict[str, Any]:
+        """Navigate a browser by opening it against the target URL."""
+
+        return self.open_browser_for_url(browser_id=browser_id, target_url=target_url, queue=queue)
+
     def close_browser(self, browser_id: str) -> dict[str, Any]:
         """Close one BitBrowser window."""
 
@@ -83,6 +88,29 @@ class BitBrowserClient:
         if not response.get("success", False):
             raise RuntimeError(f"BitBrowser remark update failed: {response.get('msg', 'unknown error')}")
         return response
+
+    def annotate(self, browser_id: str, remark: str) -> dict[str, Any]:
+        """Annotate a browser instance via its remark field."""
+
+        return self.update_remark(browser_id=browser_id, remark=remark)
+
+    def execute_action(self, browser_id: str, action: str, **params: Any) -> dict[str, Any]:
+        """Execute one normalized high-level browser action."""
+
+        if action == "navigate":
+            return self.navigate(
+                browser_id=browser_id,
+                target_url=str(params["target_url"]),
+                queue=bool(params.get("queue", True)),
+            )
+        if action == "annotate":
+            return self.annotate(
+                browser_id=browser_id,
+                remark=str(params["remark"]),
+            )
+        if action == "close":
+            return self.close_browser(browser_id=browser_id)
+        raise ValueError(f"unsupported browser action: {action}")
 
     def _post_json(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         body = json.dumps(payload).encode("utf-8")

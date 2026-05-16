@@ -139,7 +139,7 @@ def main() -> None:
                     "task_event_types": [item["event_type"] for item in task_events["items"]],
                     "task_attempt_statuses": [item["status"] for item in task_attempts["items"]],
                     "task_report_attempt_count": len(task_report["attempts"]),
-                    "task_report_step_count": task_report["attempts"][0]["details"].get("step_count") if task_report["attempts"] else None,
+                    "task_report_step_count": task_report["attempts"][0]["step_count"] if task_report["attempts"] else None,
                 },
                 separators=(",", ":"),
             )

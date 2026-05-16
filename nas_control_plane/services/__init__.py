@@ -11,6 +11,7 @@ from .sqlite_repositories import (
     SqliteTerminalStateRepository,
 )
 from .sqlite_store import SqliteStateStore
+from .task_plans import build_chat_action_plan, build_follow_action_plan, build_probe_action_plan
 from .tasks import TaskDispatchService
 
 __all__ = [
@@ -26,4 +27,7 @@ __all__ = [
     "TaskRepository",
     "TerminalRegistryService",
     "TerminalStateRepository",
+    "build_chat_action_plan",
+    "build_follow_action_plan",
+    "build_probe_action_plan",
 ]

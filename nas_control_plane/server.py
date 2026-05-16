@@ -166,6 +166,7 @@ def create_server(
                             "attempts": [_record_to_dict(item) for item in tasks.list_task_attempts(task_id)],
                             "events": [_record_to_dict(item) for item in tasks.list_task_events(task_id)],
                             "latest_log": _record_to_dict(latest_log) if latest_log is not None else None,
+                            "action_summary": _build_action_summary(tasks.list_task_attempts(task_id)),
                         },
                     )
                     return
@@ -420,6 +421,37 @@ def _query_value(query: dict[str, list[str]], name: str) -> str | None:
     if not values:
         return None
     return values[0]
+
+
+def _build_action_summary(attempts: list[Any]) -> dict[str, Any]:
+    action_names: list[str] = []
+    failed_step = None
+    failed_action = None
+    failure_category = None
+    recommended_action = None
+    for attempt in attempts:
+        details = getattr(attempt, "details", {}) or {}
+        for item in details.get("browser_action_results", []):
+            name = item.get("name")
+            if isinstance(name, str):
+                action_names.append(name)
+        if failed_step is None and details.get("failed_step") is not None:
+            failed_step = details.get("failed_step")
+        if failed_action is None and details.get("failed_action") is not None:
+            failed_action = details.get("failed_action")
+        if failure_category is None and getattr(attempt, "failure_category", None) is not None:
+            failure_category = getattr(attempt, "failure_category")
+        if recommended_action is None and getattr(attempt, "recommended_action", None) is not None:
+            recommended_action = getattr(attempt, "recommended_action")
+
+    return {
+        "action_names": action_names,
+        "action_count": len(action_names),
+        "failed_step": failed_step,
+        "failed_action": failed_action,
+        "failure_category": failure_category,
+        "recommended_action": recommended_action,
+    }
 
 
 if __name__ == "__main__":

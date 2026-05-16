@@ -117,4 +117,9 @@ class TaskAttemptRecord:
     error_message: str | None = None
     retryable: bool | None = None
     final: bool | None = None
+    step_count: int = 0
+    failed_step_name: str | None = None
+    failed_step_status: str | None = None
+    failure_category: str | None = None
+    recommended_action: str | None = None
     details: dict[str, Any] = field(default_factory=dict)

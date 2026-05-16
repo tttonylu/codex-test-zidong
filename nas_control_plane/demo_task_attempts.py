@@ -59,7 +59,33 @@ def main() -> None:
                 error_message="network timeout",
                 retryable=True,
                 final=False,
-                details={"error": "network timeout"},
+                details={
+                    "error": "network timeout",
+                    "step_count": 3,
+                    "steps": [
+                        {
+                            "name": "validate_instance_id",
+                            "status": "completed",
+                            "started_at": "2026-05-17T10:00:00",
+                            "finished_at": "2026-05-17T10:00:00",
+                            "details": {"action": "follow", "browser_id": "instance-attempts"},
+                        },
+                        {
+                            "name": "prepare_target",
+                            "status": "completed",
+                            "started_at": "2026-05-17T10:00:00",
+                            "finished_at": "2026-05-17T10:00:00",
+                            "details": {"action": "follow", "target_handle": "attempt_user"},
+                        },
+                        {
+                            "name": "open_browser",
+                            "status": "failed",
+                            "started_at": "2026-05-17T10:00:01",
+                            "finished_at": "2026-05-17T10:00:01",
+                            "details": {"action": "follow", "error": "network timeout"},
+                        },
+                    ],
+                },
                 emitted_at=datetime(2026, 5, 17, 10, 1, 0),
             )
         )
@@ -105,6 +131,10 @@ def main() -> None:
                     "run_ids": [item["run_id"] for item in attempts["items"]],
                     "error_codes": [item["error_code"] for item in attempts["items"]],
                     "summaries": [item["summary"] for item in attempts["items"]],
+                    "step_counts": [item["step_count"] for item in attempts["items"]],
+                    "failed_step_names": [item["failed_step_name"] for item in attempts["items"]],
+                    "failure_categories": [item["failure_category"] for item in attempts["items"]],
+                    "recommended_actions": [item["recommended_action"] for item in attempts["items"]],
                 },
                 separators=(",", ":"),
             )
