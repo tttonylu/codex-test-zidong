@@ -55,6 +55,14 @@ class MockBitBrowserHandler(BaseHTTPRequestHandler):
                     "http": "127.0.0.1:53325",
                 },
             }
+        elif self.path == "/browser/remark/update":
+            body = {
+                "success": True,
+                "data": {
+                    "browserIds": payload.get("browserIds", []),
+                    "remark": payload.get("remark"),
+                },
+            }
         else:
             self.send_response(404)
             self.end_headers()
@@ -94,7 +102,21 @@ def main() -> None:
                 terminal_id="terminal-exec-01",
                 instance_id="bb-exec-1",
                 script_name="follow",
-                parameters={"target_handle": "user_exec_a"},
+                parameters={
+                    "target_handle": "user_exec_a",
+                    "action_plan": [
+                        {
+                            "name": "navigate_profile",
+                            "kind": "navigate",
+                            "params": {"target_url": "https://x.com/user_exec_a", "queue": True},
+                        },
+                        {
+                            "name": "annotate_follow_target",
+                            "kind": "annotate",
+                            "params": {"remark": "follow:user_exec_a"},
+                        },
+                    ],
+                },
                 priority=10,
             ),
             TaskAssignmentPayload(
@@ -139,7 +161,7 @@ def main() -> None:
                     "task_event_types": [item["event_type"] for item in task_events["items"]],
                     "task_attempt_statuses": [item["status"] for item in task_attempts["items"]],
                     "task_report_attempt_count": len(task_report["attempts"]),
-                    "task_report_step_count": task_report["attempts"][0]["step_count"] if task_report["attempts"] else None,
+                    "task_report_step_count": task_report["attempts"][0]["details"].get("step_count") if task_report["attempts"] else None,
                 },
                 separators=(",", ":"),
             )
