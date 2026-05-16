@@ -1,0 +1,14 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Local NAS state
+nas_control_plane/state*.json
+
+# OS/editor files
+.DS_Store
+Thumbs.db
