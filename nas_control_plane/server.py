@@ -829,6 +829,11 @@ def _render_dashboard_page() -> str:
           <option value="probe">probe</option>
           <option value="extract">extract</option>
         </select>
+        <select id="filter-diagnosis">
+          <option value="">\\u5168\\u90e8\\u8bca\\u65ad\\u72b6\\u6001</option>
+          <option value="retryable">retryable / \\u53ef\\u91cd\\u8bd5</option>
+          <option value="final">final / \\u7ec8\\u6001</option>
+        </select>
         <button class="ghost" id="apply-filters">\\u5e94\\u7528\\u7b5b\\u9009</button>
         <button class="ghost" id="clear-filters">\\u6e05\\u7a7a\\u7b5b\\u9009</button>
       </div>
@@ -1060,6 +1065,10 @@ def _render_dashboard_page() -> str:
       return query.toString() ? "/tasks?" + query.toString() : "/tasks";
     }
 
+    function currentTaskDiagnosis() {
+      return document.getElementById("filter-diagnosis").value;
+    }
+
     function currentLogQuery() {
       const query = new URLSearchParams();
       const terminalId = document.getElementById("log-terminal-filter").value.trim();
@@ -1081,6 +1090,14 @@ def _render_dashboard_page() -> str:
       for (const row of document.querySelectorAll(selector)) {
         row.classList.toggle("active", row.dataset[dataKey] === selectedValue);
       }
+    }
+
+    function matchTaskDiagnosis(item, diagnosis) {
+      if (!diagnosis) return true;
+      const retryable = Boolean(item?.can_retry_now);
+      if (diagnosis === "retryable") return retryable;
+      if (diagnosis === "final") return !retryable && ["failed", "completed", "cancelled"].includes(item?.status);
+      return true;
     }
 
     function generateTaskId(scriptName) {
@@ -1387,10 +1404,22 @@ def _render_dashboard_page() -> str:
           <div class="kv"><div class="k">\\u6700\\u540e\\u9519\\u8bef\\u6d88\\u606f</div><div class="v">${escapeHtml(task.last_error_message || "-")}</div></div>
           <div class="kv"><div class="k">\\u5efa\\u8bae\\u52a8\\u4f5c</div><div class="v">${escapeHtml(summary.recommended_action || "-")}</div></div>
         </div>
+        <div class="creation-actions">
+          <button class="ghost" id="jump-task-terminal-btn" ${task.terminal_id ? "" : "disabled"}>\\u8df3\\u8f6c\\u5230\\u7ec8\\u7aef</button>
+          <button class="ghost" id="jump-task-log-btn" ${latestLog.log_id ? "" : "disabled"}>\\u8df3\\u8f6c\\u5230\\u6700\\u65b0\\u65e5\\u5fd7</button>
+        </div>
         <div class="detail-section"><h3>\\u8ba1\\u5212\\u52a8\\u4f5c</h3><div class="chips">${actionNames.length ? actionNames.map((name) => `<span class="chip">${escapeHtml(name)}</span>`).join("") : '<span class="chip">\\u6682\\u65e0\\u52a8\\u4f5c\\u8ba1\\u5212</span>'}</div></div>
         <div class="detail-section"><h3>\\u6700\\u65b0\\u65e5\\u5fd7</h3>${latestLogHtml}</div>
         <div class="detail-section"><h3>\\u6267\\u884c\\u5c1d\\u8bd5</h3><div class="timeline">${attemptsHtml}</div></div>
         <div class="detail-section"><h3>\\u4e8b\\u4ef6\\u65f6\\u95f4\\u7ebf</h3><div class="timeline">${eventsHtml}</div></div>`;
+      const jumpTaskTerminalButton = document.getElementById("jump-task-terminal-btn");
+      if (jumpTaskTerminalButton && task.terminal_id) {
+        jumpTaskTerminalButton.addEventListener("click", () => loadTerminalDetail(task.terminal_id, { syncTaskFilter: true, syncLogFilter: true }));
+      }
+      const jumpTaskLogButton = document.getElementById("jump-task-log-btn");
+      if (jumpTaskLogButton && latestLog.log_id) {
+        jumpTaskLogButton.addEventListener("click", () => loadLogDetail(latestLog.log_id, { syncRelations: true }));
+      }
     }
 
     async function loadTerminalDetail(terminalId, options = {}) {
@@ -1430,14 +1459,34 @@ def _render_dashboard_page() -> str:
           <div class="kv"><div class="k">agent_version</div><div class="v code">${escapeHtml(terminal.agent_version || "-")}</div></div>
           <div class="kv"><div class="k">last_seen_at</div><div class="v">${escapeHtml(formatTime(terminal.last_seen_at))}</div></div>
         </div>
+        <div class="creation-actions">
+          <button class="ghost" id="jump-terminal-filter-task-btn" ${terminal.terminal_id ? "" : "disabled"}>\\u7528\\u6b64\\u7ec8\\u7aef\\u7b5b\\u9009\\u4efb\\u52a1</button>
+          <button class="ghost" id="jump-terminal-filter-log-btn" ${terminal.terminal_id ? "" : "disabled"}>\\u7528\\u6b64\\u7ec8\\u7aef\\u7b5b\\u9009\\u65e5\\u5fd7</button>
+        </div>
         <div class="detail-section"><h3>metadata</h3>${jsonBlock(terminal.metadata || {})}</div>
         <div class="detail-section"><h3>\\u5b9e\\u4f8b\\u5217\\u8868</h3><div class="timeline">${instanceHtml}</div></div>
         <div class="detail-section"><h3>\\u6700\\u8fd1\\u65e5\\u5fd7</h3><div class="timeline">${logHtml}</div></div>`;
+      const jumpTerminalTaskButton = document.getElementById("jump-terminal-filter-task-btn");
+      if (jumpTerminalTaskButton && terminal.terminal_id) {
+        jumpTerminalTaskButton.addEventListener("click", async () => {
+          syncTaskFilterTerminal(terminal.terminal_id);
+          await refreshTasks();
+        });
+      }
+      const jumpTerminalLogButton = document.getElementById("jump-terminal-filter-log-btn");
+      if (jumpTerminalLogButton && terminal.terminal_id) {
+        jumpTerminalLogButton.addEventListener("click", async () => {
+          syncLogFilterTerminal(terminal.terminal_id);
+          await refreshLogs();
+        });
+      }
     }
 
     async function refreshTasks() {
       const tasks = await getJson(currentTaskQuery());
-      renderTasks(tasks.items || []);
+      const diagnosis = currentTaskDiagnosis();
+      const filteredItems = (tasks.items || []).filter((item) => matchTaskDiagnosis(item, diagnosis));
+      renderTasks(filteredItems);
     }
 
     async function refreshLogs() {
@@ -1458,8 +1507,20 @@ def _render_dashboard_page() -> str:
           <div class="kv"><div class="k">run_id</div><div class="v code">${escapeHtml(log.run_id || "-")}</div></div>
           <div class="kv"><div class="k">emitted_at</div><div class="v">${escapeHtml(formatTime(log.emitted_at))}</div></div>
         </div>
+        <div class="creation-actions">
+          <button class="ghost" id="jump-log-task-btn" ${log.task_id ? "" : "disabled"}>\\u8df3\\u8f6c\\u5230\\u4efb\\u52a1</button>
+          <button class="ghost" id="jump-log-terminal-btn" ${log.terminal_id ? "" : "disabled"}>\\u8df3\\u8f6c\\u5230\\u7ec8\\u7aef</button>
+        </div>
         <div class="detail-section"><h3>message</h3><div class="timeline-item">${escapeHtml(log.message || "-")}</div></div>
         <div class="detail-section"><h3>details</h3>${jsonBlock(log.details || {})}</div>`;
+      const jumpLogTaskButton = document.getElementById("jump-log-task-btn");
+      if (jumpLogTaskButton && log.task_id) {
+        jumpLogTaskButton.addEventListener("click", () => loadTaskReport(log.task_id, { syncRelations: true }));
+      }
+      const jumpLogTerminalButton = document.getElementById("jump-log-terminal-btn");
+      if (jumpLogTerminalButton && log.terminal_id) {
+        jumpLogTerminalButton.addEventListener("click", () => loadTerminalDetail(log.terminal_id, { syncTaskFilter: true, syncLogFilter: true }));
+      }
       highlightRows(".log-row", "logId", state.selectedLogId);
       if (options.syncRelations) {
         if (log.terminal_id) {
@@ -1497,6 +1558,7 @@ def _render_dashboard_page() -> str:
         document.getElementById("filter-terminal").value = "";
         document.getElementById("filter-status").value = "";
         document.getElementById("filter-script").value = "";
+        document.getElementById("filter-diagnosis").value = "";
         await refreshAll();
       });
       document.getElementById("apply-log-filters").addEventListener("click", refreshLogs);
