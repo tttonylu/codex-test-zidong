@@ -84,13 +84,21 @@ class TaskDispatchService:
             )
         ]
 
-    def claim_tasks(self, terminal_id: str, limit: int | None = None) -> list[TaskRecord]:
+    def claim_tasks(
+        self,
+        terminal_id: str,
+        limit: int | None = None,
+        blocked_instance_ids: set[str] | None = None,
+    ) -> list[TaskRecord]:
         """Return claimable tasks for one terminal and mark them as dispatched."""
 
         eligible: list[TaskRecord] = []
+        claimed_instance_ids = set(blocked_instance_ids or set())
         now = self._now_fn()
         for record in self._tasks.values():
             if record.terminal_id != terminal_id:
+                continue
+            if record.instance_id is not None and record.instance_id in claimed_instance_ids:
                 continue
             if record.status == "queued":
                 eligible.append(record)
@@ -98,15 +106,19 @@ class TaskDispatchService:
                 if retry_task_ready(record, now):
                     eligible.append(record)
 
-        eligible.sort(key=lambda item: (-item.priority, item.created_at))
-        if limit is not None:
-            eligible = eligible[: max(0, limit)]
-
         claimed: list[TaskRecord] = []
+        eligible.sort(key=lambda item: (-item.priority, item.created_at))
+        max_items = max(0, limit) if limit is not None else None
         for record in eligible:
+            if max_items is not None and len(claimed) >= max_items:
+                break
+            if record.instance_id is not None and record.instance_id in claimed_instance_ids:
+                continue
             updated = replace(record, status="dispatched")
             self._tasks[record.task_id] = updated
             claimed.append(updated)
+            if record.instance_id is not None:
+                claimed_instance_ids.add(record.instance_id)
         self._save_state()
         return claimed
 

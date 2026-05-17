@@ -122,6 +122,15 @@ class TerminalRuntime:
             return None
         return max(0, self._max_parallel_tasks - self._state.active_task_count)
 
+    def blocked_instance_ids(self) -> list[str]:
+        """Return instance identifiers that are currently occupying execution slots."""
+
+        blocked: list[str] = []
+        for task in self._tasks.values():
+            if task.status == "running" and task.instance_id is not None:
+                blocked.append(task.instance_id)
+        return blocked
+
     def mark_task_started(self, task_id: str) -> None:
         """Mark one local task as actively executing."""
 

@@ -48,6 +48,7 @@ class TerminalAgentLoop:
         claimed_response = self._nas_client.claim_tasks(
             self._runtime.registration_payload().terminal_id,
             max_tasks=self._runtime.claim_capacity(),
+            blocked_instance_ids=self._runtime.blocked_instance_ids(),
         )
         claimed_assignments = [
             _task_from_dict(item)
