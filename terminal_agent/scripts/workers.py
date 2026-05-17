@@ -175,6 +175,12 @@ def _classify_worker_failure(script_name: str, exc: Exception) -> str:
         return "worker.missing_bitbrowser_client"
     if "unsupported script" in message:
         return "worker.unsupported_script"
-    if "open failed" in message or "close failed" in message or "remark update failed" in message:
+    if "request failed" in message:
+        return "bitbrowser.request_failed"
+    if "open failed" in message:
         return "bitbrowser.open_failed"
+    if "close failed" in message:
+        return "bitbrowser.close_failed"
+    if "remark update failed" in message:
+        return "bitbrowser.remark_update_failed"
     return f"{script_name}.execution_failed"

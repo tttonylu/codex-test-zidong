@@ -104,8 +104,8 @@ class TaskDispatchService:
         final = bool(payload.final) or (payload.status != "completed" and exhausted)
         retryable = bool(payload.retryable) and not final
         status = payload.status
-        if final and payload.status != "completed":
-            status = "terminal_failure"
+        if payload.status != "completed":
+            status = "retryable_failure" if retryable else "terminal_failure"
 
         updated = replace(
             record,

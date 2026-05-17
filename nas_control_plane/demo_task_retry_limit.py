@@ -6,6 +6,7 @@ import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from nas_control_plane.server import create_server
 from shared.protocol import TaskAssignmentPayload
@@ -61,7 +62,11 @@ class MockBitBrowserHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    nas = create_server(port=8774)
+    state_path = Path("nas_control_plane/state.task-retry-limit.demo.sqlite3")
+    if state_path.exists():
+        state_path.unlink()
+
+    nas = create_server(port=8774, state_path=state_path)
     bitbrowser = ThreadingHTTPServer(("127.0.0.1", 15439), MockBitBrowserHandler)
 
     nas_thread = threading.Thread(target=nas.serve_forever, daemon=True)
@@ -102,6 +107,7 @@ def main() -> None:
         )
 
         first_cycle = loop.run(cycles=1, interval_seconds=0)
+        first_task = nas_client.get_task("task-retry-limit-01")
         first_retry = nas_client.retry_task("task-retry-limit-01", requested_by="demo")
         second_cycle = loop.run(cycles=1, interval_seconds=0)
         blocked_retry = nas_client.retry_task("task-retry-limit-01", requested_by="demo")
@@ -111,6 +117,9 @@ def main() -> None:
             json.dumps(
                 {
                     "first_cycle": first_cycle,
+                    "first_task_status": first_task["status"],
+                    "first_task_retryable": first_task["retryable"],
+                    "first_task_final": first_task["final"],
                     "second_cycle": second_cycle,
                     "first_retry_status": first_retry["status"],
                     "blocked_retry_status": blocked_retry["status"],
@@ -128,6 +137,8 @@ def main() -> None:
         nas.shutdown()
         bitbrowser.server_close()
         nas.server_close()
+        if state_path.exists():
+            state_path.unlink()
 
 
 if __name__ == "__main__":
