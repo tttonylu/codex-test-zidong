@@ -111,6 +111,7 @@ class TerminalRuntime:
             metadata={
                 **self._state.metadata,
                 "max_parallel_tasks": self._max_parallel_tasks,
+                "active_task_count": self._state.active_task_count,
             },
         )
 
@@ -119,7 +120,35 @@ class TerminalRuntime:
 
         if self._max_parallel_tasks is None:
             return None
-        return max(0, self._max_parallel_tasks)
+        return max(0, self._max_parallel_tasks - self._state.active_task_count)
+
+    def mark_task_started(self, task_id: str) -> None:
+        """Mark one local task as actively executing."""
+
+        task = self._tasks.get(task_id)
+        if task is None:
+            return
+        if task.status == "running":
+            return
+        task.status = "running"
+        self._state.active_task_count += 1
+        self._state.queued_task_count = max(0, self._state.queued_task_count - 1)
+
+    def mark_task_finished(self, task_id: str) -> None:
+        """Mark one local task as no longer occupying an execution slot."""
+
+        task = self._tasks.get(task_id)
+        if task is None:
+            return
+        if task.status != "running":
+            return
+        task.status = "completed"
+        self._state.active_task_count = max(0, self._state.active_task_count - 1)
+
+    def set_active_task_count(self, count: int) -> None:
+        """Force the current active task count for verification or recovery."""
+
+        self._state.active_task_count = max(0, count)
 
     def instance_snapshot_payloads(self) -> list[InstanceSnapshotPayload]:
         """Build sync payloads for all known local instances."""

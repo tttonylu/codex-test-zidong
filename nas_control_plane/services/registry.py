@@ -59,6 +59,7 @@ class TerminalRegistryService:
                 **record.metadata,
                 **payload.metadata,
                 "active_instance_count": payload.active_instance_count,
+                "active_task_count": payload.metadata.get("active_task_count", 0),
                 "queued_task_count": payload.queued_task_count,
             },
         )

@@ -16,6 +16,7 @@ class TerminalState:
     status: str
     agent_version: str
     active_instance_count: int = 0
+    active_task_count: int = 0
     queued_task_count: int = 0
     last_heartbeat_at: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)

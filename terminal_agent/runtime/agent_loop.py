@@ -56,6 +56,7 @@ class TerminalAgentLoop:
         self._runtime.accept_task_assignments(claimed_assignments)
         executions: list[WorkerExecution] = []
         for item in claimed_assignments:
+            self._runtime.mark_task_started(item.task_id)
             execution = self._worker_registry.prepare_execution(
                 item,
                 terminal_hostname=self._runtime.registration_payload().hostname,
@@ -66,6 +67,7 @@ class TerminalAgentLoop:
             executions.append(self._worker_registry.finish_execution(execution))
         for execution in executions:
             self._nas_client.submit_task_result(execution.result)
+            self._runtime.mark_task_finished(execution.result.task_id)
 
         return {
             "scanned_instances": len(scanned),
