@@ -28,12 +28,14 @@
 - `terminal_agent.adapters.nas_client` 增加终端/实例查询参数透传。
 - CLI 使用同一套查询接口，避免页面和命令行行为分裂。
 - 管理动作补到最小闭环：`retry` 之外新增 `cancel`，统一走 NAS API。
+- dashboard 任务详情改成运营视图，直接展示 `error_code`、阻塞原因、结果摘要和结果详情。
 
 ## 验证
 - `python -m compileall nas_control_plane terminal_agent shared`
 - `python -m nas_control_plane.demo_dashboard`
 - `python -m nas_control_plane.demo_cli`
 - `python -m nas_control_plane.demo_management_queries`
+- `python -m nas_control_plane.demo_task_cancel`
 
 ## 未完成项
 - 浏览器里验证 `/dashboard` 的筛选、详情、重试联动。

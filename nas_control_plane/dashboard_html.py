@@ -11,6 +11,7 @@ DASHBOARD_HTML = """<!doctype html>
       --bg: #f3efe6;
       --panel: #fffaf0;
       --panel-2: #f7f1e4;
+      --panel-3: #f0e6d4;
       --ink: #1d2a32;
       --muted: #6b7278;
       --line: #d9cfbd;
@@ -31,7 +32,7 @@ DASHBOARD_HTML = """<!doctype html>
         var(--bg);
     }
     .page {
-      max-width: 1400px;
+      max-width: 1440px;
       margin: 0 auto;
       padding: 28px 20px 48px;
     }
@@ -49,7 +50,7 @@ DASHBOARD_HTML = """<!doctype html>
     .hero p {
       margin: 0;
       color: var(--muted);
-      max-width: 840px;
+      max-width: 900px;
     }
     .stats {
       display: grid;
@@ -77,7 +78,7 @@ DASHBOARD_HTML = """<!doctype html>
     }
     .layout {
       display: grid;
-      grid-template-columns: 1.4fr 1fr;
+      grid-template-columns: 1.2fr 1.1fr;
       gap: 18px;
     }
     .column {
@@ -92,11 +93,16 @@ DASHBOARD_HTML = """<!doctype html>
       margin: 0 0 12px;
       font-size: 18px;
     }
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
     .toolbar {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
       margin-bottom: 12px;
+      align-items: center;
     }
     input, select, button {
       border-radius: 12px;
@@ -178,12 +184,39 @@ DASHBOARD_HTML = """<!doctype html>
     }
     .badge.ok { color: var(--ok); border-color: rgba(44,110,73,0.24); }
     .badge.warn { color: var(--warn); border-color: rgba(177,70,35,0.24); }
-    .detail {
+    .detail-stack {
       display: grid;
-      gap: 10px;
-      min-height: 220px;
+      gap: 12px;
     }
-    .detail pre {
+    .detail-section {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.7);
+    }
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .kv {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      border-radius: 12px;
+      background: var(--panel-3);
+    }
+    .kv .k {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .kv .v {
+      font-size: 14px;
+      word-break: break-word;
+    }
+    pre {
       margin: 0;
       white-space: pre-wrap;
       word-break: break-word;
@@ -191,12 +224,8 @@ DASHBOARD_HTML = """<!doctype html>
       border: 1px solid var(--line);
       border-radius: 14px;
       padding: 12px;
-      max-height: 320px;
+      max-height: 260px;
       overflow: auto;
-    }
-    .detail-grid {
-      display: grid;
-      gap: 12px;
     }
     .muted { color: var(--muted); }
     .empty {
@@ -210,6 +239,7 @@ DASHBOARD_HTML = """<!doctype html>
     @media (max-width: 960px) {
       .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .layout { grid-template-columns: 1fr; }
+      .kv-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 640px) {
       .stats { grid-template-columns: 1fr; }
@@ -221,10 +251,10 @@ DASHBOARD_HTML = """<!doctype html>
   <div class="page">
     <section class="hero">
       <h1>NAS Web Console</h1>
-      <p>这是当前 NAS 管理面的最小可操作界面。页面直接调用查询接口，用来查看终端、实例、任务、日志，并对失败任务执行重试。</p>
+      <p>当前页面已经进入最小运营面阶段。这里直接展示任务、终端、日志和诊断信息，用来快速判断某个任务是否失败、能不能重试、为什么被阻塞。</p>
     </section>
 
-    <section class="stats" id="stats">
+    <section class="stats">
       <div class="stat"><div class="label">终端数</div><div class="value" id="stat-terminals">-</div></div>
       <div class="stat"><div class="label">实例数</div><div class="value" id="stat-instances">-</div></div>
       <div class="stat"><div class="label">任务数</div><div class="value" id="stat-tasks">-</div></div>
@@ -247,6 +277,7 @@ DASHBOARD_HTML = """<!doctype html>
               <option value="retryable_failure">retryable_failure</option>
               <option value="terminal_failure">terminal_failure</option>
               <option value="retry_pending">retry_pending</option>
+              <option value="cancelled">cancelled</option>
             </select>
             <button id="reload-tasks">刷新任务</button>
           </div>
@@ -273,22 +304,46 @@ DASHBOARD_HTML = """<!doctype html>
       <div class="column">
         <div class="panel">
           <h2>任务详情</h2>
-          <div class="detail">
-            <div class="toolbar">
-              <button class="secondary" id="cancel-task" disabled>取消当前任务</button>
-              <button class="warn" id="retry-task" disabled>重试当前任务</button>
-              <span class="muted" id="retry-result">未执行动作</span>
+          <div class="toolbar">
+            <button class="secondary" id="cancel-task" disabled>取消当前任务</button>
+            <button class="warn" id="retry-task" disabled>重试当前任务</button>
+            <span class="muted" id="action-result">未执行动作</span>
+          </div>
+          <div class="detail-stack">
+            <div class="detail-section">
+              <h3>任务摘要</h3>
+              <div class="kv-grid" id="task-summary-grid"></div>
             </div>
-            <pre id="task-detail">请选择左侧任务。</pre>
-            <pre id="task-logs">相关日志会显示在这里。</pre>
+            <div class="detail-section">
+              <h3>诊断信息</h3>
+              <div class="kv-grid" id="task-diagnostics-grid"></div>
+            </div>
+            <div class="detail-section">
+              <h3>结果详情</h3>
+              <pre id="task-result-details">请选择左侧任务。</pre>
+            </div>
+            <div class="detail-section">
+              <h3>任务原始记录</h3>
+              <pre id="task-detail">请选择左侧任务。</pre>
+            </div>
+            <div class="detail-section">
+              <h3>任务日志</h3>
+              <pre id="task-logs">相关日志会显示在这里。</pre>
+            </div>
           </div>
         </div>
 
         <div class="panel">
           <h2>终端摘要</h2>
-          <div class="detail-grid">
-            <pre id="terminal-detail">请选择左侧终端。</pre>
-            <pre id="terminal-instances">该终端的实例列表会显示在这里。</pre>
+          <div class="detail-stack">
+            <div class="detail-section">
+              <h3>终端信息</h3>
+              <pre id="terminal-detail">请选择左侧终端。</pre>
+            </div>
+            <div class="detail-section">
+              <h3>终端实例</h3>
+              <pre id="terminal-instances">该终端的实例列表会显示在这里。</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -305,11 +360,14 @@ DASHBOARD_HTML = """<!doctype html>
     const terminalListEl = document.getElementById("terminal-list");
     const taskDetailEl = document.getElementById("task-detail");
     const taskLogsEl = document.getElementById("task-logs");
+    const taskSummaryGridEl = document.getElementById("task-summary-grid");
+    const taskDiagnosticsGridEl = document.getElementById("task-diagnostics-grid");
+    const taskResultDetailsEl = document.getElementById("task-result-details");
     const terminalDetailEl = document.getElementById("terminal-detail");
     const terminalInstancesEl = document.getElementById("terminal-instances");
     const cancelButtonEl = document.getElementById("cancel-task");
     const retryButtonEl = document.getElementById("retry-task");
-    const retryResultEl = document.getElementById("retry-result");
+    const actionResultEl = document.getElementById("action-result");
 
     document.getElementById("reload-tasks").addEventListener("click", () => loadTasks());
     document.getElementById("reload-terminals").addEventListener("click", () => loadTerminals());
@@ -388,9 +446,9 @@ DASHBOARD_HTML = """<!doctype html>
 
     async function selectTask(taskId) {
       state.selectedTaskId = taskId;
-      retryResultEl.textContent = "未执行动作";
+      actionResultEl.textContent = "未执行动作";
       const task = await fetchJson(`/task/${encodeURIComponent(taskId)}`);
-      taskDetailEl.textContent = JSON.stringify(task, null, 2);
+      renderTaskDetails(task);
       taskLogsEl.textContent = "正在加载日志...";
       const logs = await fetchJson(`/logs?task_id=${encodeURIComponent(taskId)}`);
       taskLogsEl.textContent = JSON.stringify(logs.items, null, 2);
@@ -400,22 +458,50 @@ DASHBOARD_HTML = """<!doctype html>
       await loadTasks();
     }
 
+    function renderTaskDetails(task) {
+      const params = task.parameters || {};
+      const summaryItems = [
+        ["任务 ID", task.task_id],
+        ["状态", task.status],
+        ["脚本", task.script_name],
+        ["终端", task.terminal_id],
+        ["实例", task.instance_id || "-"],
+        ["尝试次数", `${task.attempt_count}/${task.retry_limit + 1}`],
+        ["可重试", String(task.retryable)],
+        ["最终态", String(task.final)],
+      ];
+      const diagnosticsItems = [
+        ["错误码", task.last_error_code || "-"],
+        ["错误信息", task.last_error_message || "-"],
+        ["结果摘要", params.result_summary || "-"],
+        ["重试阻塞原因", params.retry_blocked_reason || "-"],
+        ["取消阻塞原因", params.cancel_blocked_reason || "-"],
+        ["重试已接受", stringifyBool(params.retry_request_accepted)],
+        ["取消已接受", stringifyBool(params.cancel_request_accepted)],
+        ["最近运行 ID", params.result_run_id || params.run_id || "-"],
+      ];
+      taskSummaryGridEl.innerHTML = summaryItems.map(renderKv).join("");
+      taskDiagnosticsGridEl.innerHTML = diagnosticsItems.map(renderKv).join("");
+      taskResultDetailsEl.textContent = JSON.stringify(params.result_details || {}, null, 2);
+      taskDetailEl.textContent = JSON.stringify(task, null, 2);
+    }
+
     async function cancelSelectedTask() {
       if (!state.selectedTaskId) return;
       cancelButtonEl.disabled = true;
       retryButtonEl.disabled = true;
-      retryResultEl.textContent = "正在取消...";
+      actionResultEl.textContent = "正在取消...";
       try {
         const updated = await fetchJson("/tasks/cancel", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ task_id: state.selectedTaskId, requested_by: "web-console" }),
         });
-        retryResultEl.textContent = `已取消: ${updated.status}`;
-        taskDetailEl.textContent = JSON.stringify(updated, null, 2);
+        actionResultEl.textContent = `已取消: ${updated.status}`;
+        renderTaskDetails(updated);
         await loadTasks();
       } catch (error) {
-        retryResultEl.textContent = `失败: ${error.message}`;
+        actionResultEl.textContent = `失败: ${error.message}`;
       } finally {
         cancelButtonEl.disabled = false;
         retryButtonEl.disabled = false;
@@ -425,20 +511,20 @@ DASHBOARD_HTML = """<!doctype html>
     async function retrySelectedTask() {
       if (!state.selectedTaskId) return;
       retryButtonEl.disabled = true;
-      retryResultEl.textContent = "正在提交...";
+      actionResultEl.textContent = "正在提交...";
       try {
         const updated = await fetchJson("/tasks/retry", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ task_id: state.selectedTaskId, requested_by: "web-console" }),
         });
-        retryResultEl.textContent = `已更新: ${updated.status}`;
-        taskDetailEl.textContent = JSON.stringify(updated, null, 2);
+        actionResultEl.textContent = `已更新: ${updated.status}`;
+        renderTaskDetails(updated);
         const logs = await fetchJson(`/logs?task_id=${encodeURIComponent(state.selectedTaskId)}`);
         taskLogsEl.textContent = JSON.stringify(logs.items, null, 2);
         await loadTasks();
       } catch (error) {
-        retryResultEl.textContent = `失败: ${error.message}`;
+        actionResultEl.textContent = `失败: ${error.message}`;
       } finally {
         retryButtonEl.disabled = false;
       }
@@ -492,6 +578,16 @@ DASHBOARD_HTML = """<!doctype html>
       const instances = await fetchJson(`/instances?terminal_id=${encodeURIComponent(terminalId)}`);
       terminalInstancesEl.textContent = JSON.stringify(instances.items, null, 2);
       await loadTerminals();
+    }
+
+    function renderKv([key, value]) {
+      return `<div class="kv"><div class="k">${escapeHtml(key)}</div><div class="v">${escapeHtml(value ?? "-")}</div></div>`;
+    }
+
+    function stringifyBool(value) {
+      if (value === true) return "true";
+      if (value === false) return "false";
+      return "-";
     }
 
     function escapeHtml(text) {
