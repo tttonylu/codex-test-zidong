@@ -8,6 +8,7 @@ from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import unquote_plus
 
@@ -35,6 +36,7 @@ def create_server(
     host: str = "127.0.0.1",
     port: int = 8765,
     state_path: str | Path = "nas_control_plane/state.json",
+    now_fn: Callable[[], datetime] | None = None,
 ) -> ThreadingHTTPServer:
     """Create an HTTP server instance backed by a JSON state store."""
 
@@ -44,7 +46,7 @@ def create_server(
     audit_repository = AuditLogRepository(store)
 
     registry = TerminalRegistryService(repository=terminal_repository)
-    tasks = TaskDispatchService(repository=task_repository)
+    tasks = TaskDispatchService(repository=task_repository, now_fn=now_fn)
     audit = AuditService(repository=audit_repository)
 
     class RequestHandler(BaseHTTPRequestHandler):

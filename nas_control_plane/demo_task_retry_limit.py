@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import threading
 import time
+from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -66,7 +67,12 @@ def main() -> None:
     if state_path.exists():
         state_path.unlink()
 
-    nas = create_server(port=8774, state_path=state_path)
+    current = datetime(2026, 5, 17, 13, 0, 0)
+
+    def now_fn() -> datetime:
+        return current
+
+    nas = create_server(port=8774, state_path=state_path, now_fn=now_fn)
     bitbrowser = ThreadingHTTPServer(("127.0.0.1", 15439), MockBitBrowserHandler)
 
     nas_thread = threading.Thread(target=nas.serve_forever, daemon=True)
@@ -109,6 +115,7 @@ def main() -> None:
         first_cycle = loop.run(cycles=1, interval_seconds=0)
         first_task = nas_client.get_task("task-retry-limit-01")
         first_retry = nas_client.retry_task("task-retry-limit-01", requested_by="demo")
+        current = current + timedelta(seconds=15)
         second_cycle = loop.run(cycles=1, interval_seconds=0)
         blocked_retry = nas_client.retry_task("task-retry-limit-01", requested_by="demo")
 
@@ -127,6 +134,7 @@ def main() -> None:
                     "task_attempt_count": tasks["items"][0]["attempt_count"],
                     "task_retryable": tasks["items"][0]["retryable"],
                     "task_final": tasks["items"][0]["final"],
+                    "retry_available_at": first_retry["parameters"].get("retry_available_at"),
                     "retry_blocked_reason": tasks["items"][0]["parameters"].get("retry_blocked_reason"),
                 },
                 separators=(",", ":"),

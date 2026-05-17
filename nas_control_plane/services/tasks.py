@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from collections.abc import Callable, Iterable
 from dataclasses import replace
-from collections.abc import Iterable
+from datetime import datetime, timedelta
 
 from nas_control_plane.models import TaskRecord
+from nas_control_plane.services.recovery import resolve_recovery_policy
 from nas_control_plane.services.repositories import TaskRepository
 from shared.protocol import ActionResultPayload, ScriptRunPayload, TaskAssignmentPayload
 
@@ -14,8 +15,13 @@ from shared.protocol import ActionResultPayload, ScriptRunPayload, TaskAssignmen
 class TaskDispatchService:
     """Stores and serves simple terminal-bound task assignments."""
 
-    def __init__(self, repository: TaskRepository | None = None) -> None:
+    def __init__(
+        self,
+        repository: TaskRepository | None = None,
+        now_fn: Callable[[], datetime] | None = None,
+    ) -> None:
         self._repository = repository
+        self._now_fn = now_fn or datetime.utcnow
         self._tasks: dict[str, TaskRecord] = {}
         self._load_state()
 
@@ -82,8 +88,16 @@ class TaskDispatchService:
         """Return queued tasks for one terminal and mark them as dispatched."""
 
         claimed: list[TaskRecord] = []
+        now = self._now_fn()
         for task_id, record in list(self._tasks.items()):
-            if record.terminal_id != terminal_id or record.status not in {"queued", "retry_pending"}:
+            if record.terminal_id != terminal_id:
+                continue
+            if record.status == "queued":
+                pass
+            elif record.status == "retry_pending":
+                if not retry_task_ready(record, now):
+                    continue
+            else:
                 continue
             updated = replace(record, status="dispatched")
             self._tasks[task_id] = updated
@@ -100,9 +114,11 @@ class TaskDispatchService:
         except KeyError as exc:
             raise KeyError(f"task not found: {payload.task_id}") from exc
 
+        policy = resolve_recovery_policy(payload.error_code)
         exhausted = updated_retry_limit_exhausted(record)
-        final = bool(payload.final) or (payload.status != "completed" and exhausted)
-        retryable = bool(payload.retryable) and not final
+        retryable_requested = payload.retryable if payload.retryable is not None else policy.retryable
+        final = bool(payload.final) or (payload.status != "completed" and (exhausted or not retryable_requested))
+        retryable = retryable_requested and not final
         status = payload.status
         if payload.status != "completed":
             status = "retryable_failure" if retryable else "terminal_failure"
@@ -120,9 +136,13 @@ class TaskDispatchService:
                 "result_details": dict(payload.details),
                 "result_emitted_at": payload.emitted_at.isoformat(),
                 "result_run_id": payload.run_id,
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": self._now_fn().isoformat(),
                 "last_error_code": payload.error_code,
                 "last_error_message": payload.error_message,
+                "failure_category": policy.category,
+                "recommended_action": policy.recommended_action,
+                "retry_delay_seconds": policy.retry_delay_seconds,
+                "retry_available_at": None,
                 "retryable": retryable,
                 "final": final,
             },
@@ -141,14 +161,17 @@ class TaskDispatchService:
 
         exhausted = updated_retry_limit_exhausted(record)
         accepted = record.status in {"failed", "terminal_failure", "retryable_failure", "retry_pending"} and not exhausted
+        retry_delay_seconds = _coerce_retry_delay_seconds(record.parameters.get("retry_delay_seconds"))
+        now = self._now_fn()
         parameters = {
             **record.parameters,
-            "retry_requested_at": datetime.utcnow().isoformat(),
+            "retry_requested_at": now.isoformat(),
             "retry_requested_by": requested_by,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": now.isoformat(),
         }
         if accepted:
             parameters["retry_request_accepted"] = True
+            parameters["retry_available_at"] = (now + timedelta(seconds=retry_delay_seconds)).isoformat()
             updated = replace(
                 record,
                 status="retry_pending",
@@ -182,9 +205,9 @@ class TaskDispatchService:
         cancellable = record.status in {"queued", "dispatched", "running", "retry_pending"}
         parameters = {
             **record.parameters,
-            "cancel_requested_at": datetime.utcnow().isoformat(),
+            "cancel_requested_at": self._now_fn().isoformat(),
             "cancel_requested_by": requested_by,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": self._now_fn().isoformat(),
         }
         if cancellable:
             parameters["cancel_request_accepted"] = True
@@ -225,7 +248,7 @@ class TaskDispatchService:
                 "run_script_name": payload.script_name,
                 "run_started_at": payload.started_at.isoformat() if payload.started_at else None,
                 "run_step_count": payload.step_count,
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": self._now_fn().isoformat(),
             },
         )
         self._tasks[payload.task_id] = updated
@@ -251,6 +274,23 @@ def updated_retry_limit_exhausted(record: TaskRecord) -> bool:
     return record.attempt_count >= record.retry_limit + 1
 
 
+def retry_task_ready(record: TaskRecord, now: datetime) -> bool:
+    """Return whether one retry-pending task may be claimed now."""
+
+    if record.status != "retry_pending":
+        return True
+
+    raw = record.parameters.get("retry_available_at")
+    if not raw:
+        return True
+
+    try:
+        available_at = datetime.fromisoformat(str(raw))
+    except ValueError:
+        return True
+    return available_at <= now
+
+
 def _matches_task_filter(
     record: TaskRecord,
     *,
@@ -268,3 +308,10 @@ def _matches_task_filter(
     if final is not None and record.final is not final:
         return False
     return True
+
+
+def _coerce_retry_delay_seconds(raw: object) -> int:
+    try:
+        return max(0, int(raw)) if raw is not None else 0
+    except (TypeError, ValueError):
+        return 0
