@@ -70,7 +70,6 @@ class TaskDispatchService:
         updated = replace(
             record,
             status=payload.status,
-            attempt_count=record.attempt_count + 1,
             retryable=bool(payload.retryable),
             final=bool(payload.final),
             last_error_code=payload.error_code,
@@ -86,9 +85,10 @@ class TaskDispatchService:
                 "last_error_message": payload.error_message,
                 "retryable": payload.retryable,
                 "final": payload.final,
-                "attempt_count": record.attempt_count + 1,
             },
         )
+        if updated.attempt_count > updated.retry_limit + 1:
+            updated = replace(updated, final=True, retryable=False)
         self._tasks[payload.task_id] = updated
         self._save_state()
         return updated
@@ -112,7 +112,6 @@ class TaskDispatchService:
                 "run_started_at": payload.started_at.isoformat() if payload.started_at else None,
                 "run_step_count": payload.step_count,
                 "updated_at": datetime.utcnow().isoformat(),
-                "attempt_count": record.attempt_count + 1,
             },
         )
         self._tasks[payload.task_id] = updated

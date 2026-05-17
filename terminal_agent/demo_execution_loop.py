@@ -137,6 +137,8 @@ def main() -> None:
                             "task_result_codes": [item["parameters"].get("result_details", {}).get("error_code") for item in tasks["items"]],
                             "task_result_step_counts": [item["parameters"].get("result_details", {}).get("step_count") for item in tasks["items"]],
                             "task_attempt_counts": [item["attempt_count"] for item in tasks["items"]],
+                            "task_retryable": [item["retryable"] for item in tasks["items"]],
+                            "task_final": [item["final"] for item in tasks["items"]],
                             "log_levels": [item["level"] for item in logs["items"]],
                             "log_messages": [item["message"] for item in logs["items"]],
                         },
