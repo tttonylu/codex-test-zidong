@@ -81,6 +81,7 @@ def main() -> None:
                 operator_name="codex",
                 agent_version="0.1.0",
                 capabilities=["bitbrowser.scan", "task.execute"],
+                max_parallel_tasks=1,
             ).registration_payload()
         )
         nas_client.create_task(
@@ -104,18 +105,54 @@ def main() -> None:
                 operator_name="codex",
                 agent_version="0.1.0",
                 capabilities=["bitbrowser.scan", "task.execute"],
+                max_parallel_tasks=1,
             ),
             nas_client=nas_client,
             bitbrowser_client=BitBrowserClient("http://127.0.0.1:15441"),
             sleep_fn=lambda _: None,
         )
+        nas_client.create_task(
+            TaskAssignmentPayload(
+                task_id="task-cli-02",
+                terminal_id="terminal-cli-01",
+                instance_id="bb-cli-1",
+                script_name="chat",
+                parameters={"target_handle": "cli_user_b"},
+                priority=5,
+                retry_limit=1,
+                close_after_actions=True,
+                requested_by="demo",
+            )
+        )
         loop.run(cycles=1, interval_seconds=0)
 
         commands = [
             ("terminals", ["--base-url", "http://127.0.0.1:8776", "terminals"]),
+            (
+                "terminals-filtered",
+                [
+                    "--base-url",
+                    "http://127.0.0.1:8776",
+                    "terminals",
+                    "--max-parallel-tasks",
+                    "1",
+                ],
+            ),
             ("terminal", ["--base-url", "http://127.0.0.1:8776", "terminal", "terminal-cli-01"]),
             ("instances", ["--base-url", "http://127.0.0.1:8776", "instances", "--terminal-id", "terminal-cli-01"]),
             ("tasks", ["--base-url", "http://127.0.0.1:8776", "tasks", "--terminal-id", "terminal-cli-01"]),
+            (
+                "tasks-filtered",
+                [
+                    "--base-url",
+                    "http://127.0.0.1:8776",
+                    "tasks",
+                    "--terminal-id",
+                    "terminal-cli-01",
+                    "--wait-reason",
+                    "slot_capacity_reached",
+                ],
+            ),
             ("task", ["--base-url", "http://127.0.0.1:8776", "task", "task-cli-01"]),
             ("logs", ["--base-url", "http://127.0.0.1:8776", "logs", "--terminal-id", "terminal-cli-01"]),
         ]

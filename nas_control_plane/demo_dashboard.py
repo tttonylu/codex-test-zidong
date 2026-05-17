@@ -80,6 +80,7 @@ def main() -> None:
                 operator_name="codex",
                 agent_version="0.1.0",
                 capabilities=["bitbrowser.scan", "task.execute"],
+                max_parallel_tasks=1,
             ).registration_payload()
         )
         nas_client.create_task(
@@ -116,6 +117,7 @@ def main() -> None:
                 operator_name="codex",
                 agent_version="0.1.0",
                 capabilities=["bitbrowser.scan", "task.execute"],
+                max_parallel_tasks=1,
             ),
             nas_client=nas_client,
             bitbrowser_client=BitBrowserClient("http://127.0.0.1:15442"),

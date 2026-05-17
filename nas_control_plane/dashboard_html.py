@@ -279,6 +279,13 @@ DASHBOARD_HTML = """<!doctype html>
               <option value="retry_pending">retry_pending</option>
               <option value="cancelled">cancelled</option>
             </select>
+            <select id="filter-task-wait-reason">
+              <option value="">全部等待原因</option>
+              <option value="slot_capacity_reached">slot_capacity_reached</option>
+              <option value="instance_blocked">instance_blocked</option>
+              <option value="retry_not_ready">retry_not_ready</option>
+            </select>
+            <input id="filter-task-blocked-instance" placeholder="blocked_instance_id">
             <button id="reload-tasks">刷新任务</button>
           </div>
           <div class="list" id="task-list"></div>
@@ -295,6 +302,7 @@ DASHBOARD_HTML = """<!doctype html>
               <option value="degraded">degraded</option>
               <option value="offline">offline</option>
             </select>
+            <input id="filter-terminal-max-parallel" placeholder="max_parallel_tasks">
             <button class="secondary" id="reload-terminals">刷新终端</button>
           </div>
           <div class="list" id="terminal-list"></div>
@@ -372,11 +380,18 @@ DASHBOARD_HTML = """<!doctype html>
     document.getElementById("reload-tasks").addEventListener("click", () => loadTasks());
     document.getElementById("reload-terminals").addEventListener("click", () => loadTerminals());
     document.getElementById("filter-task-status").addEventListener("change", () => loadTasks());
+    document.getElementById("filter-task-wait-reason").addEventListener("change", () => loadTasks());
     document.getElementById("filter-terminal-status").addEventListener("change", () => loadTerminals());
     document.getElementById("filter-task-terminal").addEventListener("keydown", event => {
       if (event.key === "Enter") loadTasks();
     });
+    document.getElementById("filter-task-blocked-instance").addEventListener("keydown", event => {
+      if (event.key === "Enter") loadTasks();
+    });
     document.getElementById("filter-terminal-operator").addEventListener("keydown", event => {
+      if (event.key === "Enter") loadTerminals();
+    });
+    document.getElementById("filter-terminal-max-parallel").addEventListener("keydown", event => {
       if (event.key === "Enter") loadTerminals();
     });
     cancelButtonEl.addEventListener("click", cancelSelectedTask);
@@ -406,9 +421,13 @@ DASHBOARD_HTML = """<!doctype html>
     async function loadTasks() {
       const terminalId = document.getElementById("filter-task-terminal").value.trim();
       const status = document.getElementById("filter-task-status").value;
+      const waitReason = document.getElementById("filter-task-wait-reason").value;
+      const blockedInstanceId = document.getElementById("filter-task-blocked-instance").value.trim();
       const params = new URLSearchParams();
       if (terminalId) params.set("terminal_id", terminalId);
       if (status) params.set("status", status);
+      if (waitReason) params.set("wait_reason", waitReason);
+      if (blockedInstanceId) params.set("blocked_by_instance_id", blockedInstanceId);
       const path = params.size ? `/tasks?${params.toString()}` : "/tasks";
       const data = await fetchJson(path);
       renderTaskList(data.items);
@@ -438,6 +457,7 @@ DASHBOARD_HTML = """<!doctype html>
             <span class="badge ${item.retryable ? "ok" : ""}">retryable=${item.retryable}</span>
             <span class="badge ${item.final ? "warn" : ""}">final=${item.final}</span>
             <span class="badge">${escapeHtml(item.last_error_code || "-")}</span>
+            <span class="badge">${escapeHtml(item.parameters?.wait_reason || "-")}</span>
           </div>
         `;
         taskListEl.appendChild(card);
@@ -469,6 +489,8 @@ DASHBOARD_HTML = """<!doctype html>
         ["尝试次数", `${task.attempt_count}/${task.retry_limit + 1}`],
         ["可重试", String(task.retryable)],
         ["最终态", String(task.final)],
+        ["等待原因", params.wait_reason || "-"],
+        ["阻塞实例", params.blocked_by_instance_id || "-"],
       ];
       const diagnosticsItems = [
         ["错误码", task.last_error_code || "-"],
@@ -479,6 +501,7 @@ DASHBOARD_HTML = """<!doctype html>
         ["重试已接受", stringifyBool(params.retry_request_accepted)],
         ["取消已接受", stringifyBool(params.cancel_request_accepted)],
         ["最近运行 ID", params.result_run_id || params.run_id || "-"],
+        ["重试可用时间", params.retry_available_at || "-"],
       ];
       taskSummaryGridEl.innerHTML = summaryItems.map(renderKv).join("");
       taskDiagnosticsGridEl.innerHTML = diagnosticsItems.map(renderKv).join("");
@@ -533,9 +556,11 @@ DASHBOARD_HTML = """<!doctype html>
     async function loadTerminals() {
       const operatorName = document.getElementById("filter-terminal-operator").value.trim();
       const status = document.getElementById("filter-terminal-status").value;
+      const maxParallelTasks = document.getElementById("filter-terminal-max-parallel").value.trim();
       const params = new URLSearchParams();
       if (operatorName) params.set("operator_name", operatorName);
       if (status) params.set("status", status);
+      if (maxParallelTasks) params.set("max_parallel_tasks", maxParallelTasks);
       const path = params.size ? `/terminals?${params.toString()}` : "/terminals";
       const data = await fetchJson(path);
       renderTerminalList(data.items);
@@ -562,7 +587,9 @@ DASHBOARD_HTML = """<!doctype html>
           </div>
           <div class="badge-row">
             <span class="badge">instances=${item.metadata?.active_instance_count ?? 0}</span>
+            <span class="badge">active=${item.metadata?.active_task_count ?? 0}</span>
             <span class="badge">queued=${item.metadata?.queued_task_count ?? 0}</span>
+            <span class="badge">max=${item.metadata?.max_parallel_tasks ?? "-"}</span>
             <span class="badge">${escapeHtml(item.agent_version || "-")}</span>
           </div>
         `;
