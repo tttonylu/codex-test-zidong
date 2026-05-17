@@ -143,6 +143,7 @@ def main() -> None:
             operator_name="codex",
             agent_version="0.1.0",
             capabilities=["bitbrowser.scan", "task.execute"],
+            max_parallel_tasks=1,
         )
         loop = TerminalAgentLoop(
             runtime=runtime,

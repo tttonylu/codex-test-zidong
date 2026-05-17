@@ -60,6 +60,7 @@ class TerminalRegistryService:
                 **payload.metadata,
                 "active_instance_count": payload.active_instance_count,
                 "active_task_count": payload.metadata.get("active_task_count", 0),
+                "blocked_instance_ids": list(payload.metadata.get("blocked_instance_ids", [])),
                 "queued_task_count": payload.queued_task_count,
             },
         )

@@ -94,11 +94,13 @@ class TaskDispatchService:
 
         eligible: list[TaskRecord] = []
         claimed_instance_ids = set(blocked_instance_ids or set())
+        skipped_due_to_blocked_instance: list[TaskRecord] = []
         now = self._now_fn()
         for record in self._tasks.values():
             if record.terminal_id != terminal_id:
                 continue
             if record.instance_id is not None and record.instance_id in claimed_instance_ids:
+                skipped_due_to_blocked_instance.append(record)
                 continue
             if record.status == "queued":
                 eligible.append(record)
@@ -113,12 +115,34 @@ class TaskDispatchService:
             if max_items is not None and len(claimed) >= max_items:
                 break
             if record.instance_id is not None and record.instance_id in claimed_instance_ids:
+                skipped_due_to_blocked_instance.append(record)
                 continue
             updated = replace(record, status="dispatched")
             self._tasks[record.task_id] = updated
             claimed.append(updated)
             if record.instance_id is not None:
                 claimed_instance_ids.add(record.instance_id)
+
+        claimed_ids = {record.task_id for record in claimed}
+        for record in self._tasks.values():
+            if record.terminal_id != terminal_id or record.task_id in claimed_ids:
+                continue
+            parameters = dict(record.parameters)
+            if record.status == "queued":
+                if record in skipped_due_to_blocked_instance:
+                    parameters["wait_reason"] = "instance_blocked"
+                    parameters["blocked_by_instance_id"] = record.instance_id
+                elif max_items is not None and len(claimed) >= max_items:
+                    parameters["wait_reason"] = "slot_capacity_reached"
+                    parameters["blocked_by_instance_id"] = None
+                else:
+                    parameters.pop("wait_reason", None)
+                    parameters.pop("blocked_by_instance_id", None)
+                self._tasks[record.task_id] = replace(record, parameters=parameters)
+            elif record.status == "retry_pending":
+                parameters["wait_reason"] = "retry_not_ready"
+                parameters["blocked_by_instance_id"] = None
+                self._tasks[record.task_id] = replace(record, parameters=parameters)
         self._save_state()
         return claimed
 

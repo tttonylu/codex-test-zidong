@@ -52,6 +52,7 @@ class TerminalRuntime:
             metadata={
                 **self._state.metadata,
                 "max_parallel_tasks": self._max_parallel_tasks,
+                "blocked_instance_ids": self.blocked_instance_ids(),
             },
         )
 
@@ -112,6 +113,7 @@ class TerminalRuntime:
                 **self._state.metadata,
                 "max_parallel_tasks": self._max_parallel_tasks,
                 "active_task_count": self._state.active_task_count,
+                "blocked_instance_ids": self.blocked_instance_ids(),
             },
         )
 

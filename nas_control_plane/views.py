@@ -11,6 +11,8 @@ from nas_control_plane.models import ActionLogRecord, InstanceRecord, TaskRecord
 def render_terminal_summary(record: TerminalRecord) -> str:
     """Render one terminal record as a compact text block."""
 
+    metadata = record.metadata or {}
+    blocked_instance_ids = metadata.get("blocked_instance_ids", [])
     return "\n".join(
         [
             f"terminal: {record.terminal_id}",
@@ -20,6 +22,9 @@ def render_terminal_summary(record: TerminalRecord) -> str:
             f"agent: {record.agent_version}",
             f"last_seen: {_format_value(record.last_seen_at)}",
             f"capabilities: {', '.join(record.capabilities) if record.capabilities else '-'}",
+            f"max_parallel_tasks: {_format_value(metadata.get('max_parallel_tasks'))}",
+            f"active_task_count: {_format_value(metadata.get('active_task_count'))}",
+            f"blocked_instance_ids: {', '.join(blocked_instance_ids) if blocked_instance_ids else '-'}",
         ]
     )
 
@@ -43,6 +48,7 @@ def render_instance_summary(record: InstanceRecord) -> str:
 def render_task_summary(record: TaskRecord) -> str:
     """Render one task record as a compact text block."""
 
+    parameters = record.parameters or {}
     return "\n".join(
         [
             f"task: {record.task_id}",
@@ -53,6 +59,9 @@ def render_task_summary(record: TaskRecord) -> str:
             f"retryable: {record.retryable}",
             f"final: {record.final}",
             f"error: {record.last_error_code or '-'}",
+            f"wait_reason: {parameters.get('wait_reason') or '-'}",
+            f"blocked_by_instance_id: {parameters.get('blocked_by_instance_id') or '-'}",
+            f"retry_available_at: {parameters.get('retry_available_at') or '-'}",
         ]
     )
 
