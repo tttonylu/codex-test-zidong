@@ -50,7 +50,7 @@ class TaskDispatchService:
 
         claimed: list[TaskRecord] = []
         for task_id, record in list(self._tasks.items()):
-            if record.terminal_id != terminal_id or record.status != "queued":
+            if record.terminal_id != terminal_id or record.status not in {"queued", "retry_pending"}:
                 continue
             updated = replace(record, status="dispatched")
             self._tasks[task_id] = updated
@@ -67,11 +67,18 @@ class TaskDispatchService:
         except KeyError as exc:
             raise KeyError(f"task not found: {payload.task_id}") from exc
 
+        exhausted = updated_retry_limit_exhausted(record)
+        final = bool(payload.final) or (payload.status != "completed" and exhausted)
+        retryable = bool(payload.retryable) and not final
+        status = payload.status
+        if final and payload.status != "completed":
+            status = "terminal_failure"
+
         updated = replace(
             record,
-            status=payload.status,
-            retryable=bool(payload.retryable),
-            final=bool(payload.final),
+            status=status,
+            retryable=retryable,
+            final=final,
             last_error_code=payload.error_code,
             last_error_message=payload.error_message or None,
             parameters={
@@ -83,13 +90,51 @@ class TaskDispatchService:
                 "updated_at": datetime.utcnow().isoformat(),
                 "last_error_code": payload.error_code,
                 "last_error_message": payload.error_message,
-                "retryable": payload.retryable,
-                "final": payload.final,
+                "retryable": retryable,
+                "final": final,
             },
         )
-        if updated.attempt_count > updated.retry_limit + 1:
-            updated = replace(updated, final=True, retryable=False)
         self._tasks[payload.task_id] = updated
+        self._save_state()
+        return updated
+
+    def retry_task(self, task_id: str, requested_by: str | None = None) -> TaskRecord:
+        """Ask NAS to queue another attempt for a previously failed task."""
+
+        try:
+            record = self._tasks[task_id]
+        except KeyError as exc:
+            raise KeyError(f"task not found: {task_id}") from exc
+
+        exhausted = updated_retry_limit_exhausted(record)
+        accepted = record.status in {"failed", "terminal_failure", "retryable_failure", "retry_pending"} and not exhausted
+        parameters = {
+            **record.parameters,
+            "retry_requested_at": datetime.utcnow().isoformat(),
+            "retry_requested_by": requested_by,
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        if accepted:
+            parameters["retry_request_accepted"] = True
+            updated = replace(
+                record,
+                status="retry_pending",
+                retryable=False,
+                final=False,
+                parameters=parameters,
+            )
+        else:
+            parameters["retry_request_accepted"] = False
+            parameters["retry_blocked_reason"] = "retry_limit_exceeded" if exhausted else "task_not_retryable"
+            updated = replace(
+                record,
+                status="terminal_failure" if record.status != "completed" else record.status,
+                retryable=False,
+                final=True if record.status != "completed" else record.final,
+                parameters=parameters,
+            )
+
+        self._tasks[task_id] = updated
         self._save_state()
         return updated
 
@@ -129,3 +174,9 @@ class TaskDispatchService:
             return
 
         self._repository.save_tasks(self._tasks)
+
+
+def updated_retry_limit_exhausted(record: TaskRecord) -> bool:
+    """Return whether one more retry would exceed the configured limit."""
+
+    return record.attempt_count >= record.retry_limit + 1

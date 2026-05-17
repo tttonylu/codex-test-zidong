@@ -79,6 +79,11 @@ class NasControlPlaneClient:
 
         return self._post_json("/tasks/result", payload.to_dict())
 
+    def retry_task(self, task_id: str, requested_by: str | None = None) -> dict[str, Any]:
+        """Ask NAS to queue another attempt for one task."""
+
+        return self._post_json("/tasks/retry", {"task_id": task_id, "requested_by": requested_by})
+
     def mark_task_running(self, payload: ScriptRunPayload) -> dict[str, Any]:
         """Mark a task as running on the NAS side."""
 
