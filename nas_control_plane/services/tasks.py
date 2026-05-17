@@ -28,6 +28,9 @@ class TaskDispatchService:
             status="queued",
             instance_id=payload.instance_id,
             priority=payload.priority,
+            retry_limit=payload.retry_limit,
+            close_after_actions=payload.close_after_actions,
+            requested_by=payload.requested_by,
             parameters=dict(payload.parameters),
         )
         self._tasks[record.task_id] = record
@@ -67,6 +70,11 @@ class TaskDispatchService:
         updated = replace(
             record,
             status=payload.status,
+            attempt_count=record.attempt_count + 1,
+            retryable=bool(payload.retryable),
+            final=bool(payload.final),
+            last_error_code=payload.error_code,
+            last_error_message=payload.error_message or None,
             parameters={
                 **record.parameters,
                 "result_summary": payload.summary,
@@ -74,6 +82,10 @@ class TaskDispatchService:
                 "result_emitted_at": payload.emitted_at.isoformat(),
                 "result_run_id": payload.run_id,
                 "updated_at": datetime.utcnow().isoformat(),
+                "last_error_code": payload.error_code,
+                "last_error_message": payload.error_message,
+                "retryable": payload.retryable,
+                "final": payload.final,
             },
         )
         self._tasks[payload.task_id] = updated
@@ -96,6 +108,7 @@ class TaskDispatchService:
                 "run_id": payload.run_id,
                 "run_script_name": payload.script_name,
                 "run_started_at": payload.started_at.isoformat() if payload.started_at else None,
+                "run_step_count": payload.step_count,
                 "updated_at": datetime.utcnow().isoformat(),
             },
         )

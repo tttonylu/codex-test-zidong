@@ -68,6 +68,9 @@ class TerminalRuntime:
                 status="queued",
                 instance_id=item.instance_id,
                 priority=item.priority,
+                retry_limit=item.retry_limit,
+                close_after_actions=item.close_after_actions,
+                requested_by=item.requested_by,
                 parameters=dict(item.parameters),
             )
             for item in assignments

@@ -32,4 +32,13 @@ def execute(context: WorkerContext) -> WorkerOutcome:
             "terminal_id": context.terminal_id,
             "browser_open_result": response_data,
         },
+        step_count=1,
+        steps=[
+            {
+                "name": "open_browser",
+                "status": "completed",
+                "action": "probe",
+                "target_url": target_url,
+            }
+        ],
     )

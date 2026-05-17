@@ -45,6 +45,14 @@ class TaskRecord:
     status: str
     instance_id: str | None = None
     priority: int = 0
+    retry_limit: int = 0
+    close_after_actions: bool = False
+    requested_by: str | None = None
+    attempt_count: int = 0
+    retryable: bool = False
+    final: bool = False
+    last_error_code: str | None = None
+    last_error_message: str | None = None
     parameters: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.utcnow)
 

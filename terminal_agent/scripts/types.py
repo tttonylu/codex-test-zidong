@@ -26,3 +26,9 @@ class WorkerOutcome:
 
     summary: str
     details: dict[str, Any] = field(default_factory=dict)
+    error_code: str | None = None
+    error_message: str | None = None
+    retryable: bool | None = None
+    final: bool | None = None
+    step_count: int = 0
+    steps: list[dict[str, Any]] = field(default_factory=list)

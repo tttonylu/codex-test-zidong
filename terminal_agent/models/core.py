@@ -44,6 +44,9 @@ class LocalTask:
     status: str
     instance_id: str | None = None
     priority: int = 0
+    retry_limit: int = 0
+    close_after_actions: bool = False
+    requested_by: str | None = None
     parameters: dict[str, Any] = field(default_factory=dict)
     received_at: datetime = field(default_factory=datetime.utcnow)
 

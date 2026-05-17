@@ -72,6 +72,10 @@ class TaskAssignmentPayload:
     script_name: str
     parameters: dict[str, Any] = field(default_factory=dict)
     priority: int = 0
+    retry_limit: int = 0
+    close_after_actions: bool = False
+    requested_by: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation of the payload."""
@@ -92,6 +96,11 @@ class ScriptRunPayload:
     started_at: datetime | None = None
     finished_at: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    step_count: int = 0
+    error_code: str | None = None
+    error_message: str | None = None
+    retryable: bool | None = None
+    final: bool | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation of the payload."""
@@ -111,6 +120,10 @@ class ActionResultPayload:
     terminal_id: str
     status: str
     summary: str
+    error_code: str | None = None
+    error_message: str | None = None
+    retryable: bool | None = None
+    final: bool | None = None
     details: dict[str, Any] = field(default_factory=dict)
     emitted_at: datetime = field(default_factory=datetime.utcnow)
 

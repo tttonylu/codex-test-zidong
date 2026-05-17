@@ -68,20 +68,35 @@ class ScriptWorkerRegistry:
                 terminal_id=task.terminal_id,
                 status="completed",
                 summary=outcome.summary,
-                details=outcome.details,
+                error_code=outcome.error_code,
+                error_message=outcome.error_message,
+                retryable=outcome.retryable if outcome.retryable is not None else False,
+                final=outcome.final if outcome.final is not None else True,
+                details={
+                    **outcome.details,
+                    "step_count": outcome.step_count,
+                    "steps": list(outcome.steps),
+                },
                 emitted_at=datetime.utcnow(),
             )
         except Exception as exc:
+            error_code = _classify_worker_failure(task.script_name, exc)
+            retryable = error_code in {"bitbrowser.request_failed", "bitbrowser.open_failed"}
             result = ActionResultPayload(
                 run_id=run.run_id,
                 task_id=task.task_id,
                 terminal_id=task.terminal_id,
                 status="failed",
                 summary=f"{task.script_name} failed",
+                error_code=error_code,
+                error_message=str(exc),
+                retryable=retryable,
+                final=not retryable,
                 details={
                     "error": str(exc),
                     "instance_id": task.instance_id,
                     "parameters": dict(task.parameters),
+                    "step_count": 0,
                 },
                 emitted_at=datetime.utcnow(),
             )
@@ -94,3 +109,16 @@ class ScriptWorkerRegistry:
         except KeyError as exc:
             raise ValueError(f"unsupported script: {context.task.script_name}") from exc
         return worker(context)
+
+
+def _classify_worker_failure(script_name: str, exc: Exception) -> str:
+    message = str(exc).lower()
+    if "requires instance_id" in message:
+        return "worker.missing_instance_id"
+    if "requires bitbrowser_client" in message:
+        return "worker.missing_bitbrowser_client"
+    if "unsupported script" in message:
+        return "worker.unsupported_script"
+    if "open failed" in message or "close failed" in message or "remark update failed" in message:
+        return "bitbrowser.open_failed"
+    return f"{script_name}.execution_failed"

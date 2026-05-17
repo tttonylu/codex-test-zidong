@@ -17,4 +17,13 @@ def execute(context: WorkerContext) -> WorkerOutcome:
             "instance_id": context.task.instance_id,
             "terminal_id": context.terminal_id,
         },
+        step_count=1,
+        steps=[
+            {
+                "name": "extract_payload",
+                "status": "completed",
+                "action": "extract",
+                "source": source,
+            }
+        ],
     )
