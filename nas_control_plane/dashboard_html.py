@@ -275,6 +275,7 @@ DASHBOARD_HTML = """<!doctype html>
           <h2>任务详情</h2>
           <div class="detail">
             <div class="toolbar">
+              <button class="secondary" id="cancel-task" disabled>取消当前任务</button>
               <button class="warn" id="retry-task" disabled>重试当前任务</button>
               <span class="muted" id="retry-result">未执行动作</span>
             </div>
@@ -306,6 +307,7 @@ DASHBOARD_HTML = """<!doctype html>
     const taskLogsEl = document.getElementById("task-logs");
     const terminalDetailEl = document.getElementById("terminal-detail");
     const terminalInstancesEl = document.getElementById("terminal-instances");
+    const cancelButtonEl = document.getElementById("cancel-task");
     const retryButtonEl = document.getElementById("retry-task");
     const retryResultEl = document.getElementById("retry-result");
 
@@ -319,6 +321,7 @@ DASHBOARD_HTML = """<!doctype html>
     document.getElementById("filter-terminal-operator").addEventListener("keydown", event => {
       if (event.key === "Enter") loadTerminals();
     });
+    cancelButtonEl.addEventListener("click", cancelSelectedTask);
     retryButtonEl.addEventListener("click", retrySelectedTask);
 
     async function fetchJson(path, options) {
@@ -391,9 +394,32 @@ DASHBOARD_HTML = """<!doctype html>
       taskLogsEl.textContent = "正在加载日志...";
       const logs = await fetchJson(`/logs?task_id=${encodeURIComponent(taskId)}`);
       taskLogsEl.textContent = JSON.stringify(logs.items, null, 2);
+      cancelButtonEl.disabled = !task.task_id;
       retryButtonEl.disabled = !task.task_id;
       await selectTerminal(task.terminal_id);
       await loadTasks();
+    }
+
+    async function cancelSelectedTask() {
+      if (!state.selectedTaskId) return;
+      cancelButtonEl.disabled = true;
+      retryButtonEl.disabled = true;
+      retryResultEl.textContent = "正在取消...";
+      try {
+        const updated = await fetchJson("/tasks/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task_id: state.selectedTaskId, requested_by: "web-console" }),
+        });
+        retryResultEl.textContent = `已取消: ${updated.status}`;
+        taskDetailEl.textContent = JSON.stringify(updated, null, 2);
+        await loadTasks();
+      } catch (error) {
+        retryResultEl.textContent = `失败: ${error.message}`;
+      } finally {
+        cancelButtonEl.disabled = false;
+        retryButtonEl.disabled = false;
+      }
     }
 
     async function retrySelectedTask() {

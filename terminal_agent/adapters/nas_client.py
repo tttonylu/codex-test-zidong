@@ -170,6 +170,11 @@ class NasControlPlaneClient:
 
         return self._post_json("/tasks/retry", {"task_id": task_id, "requested_by": requested_by})
 
+    def cancel_task(self, task_id: str, requested_by: str | None = None) -> dict[str, Any]:
+        """Ask NAS to cancel one task."""
+
+        return self._post_json("/tasks/cancel", {"task_id": task_id, "requested_by": requested_by})
+
     def mark_task_running(self, payload: ScriptRunPayload) -> dict[str, Any]:
         """Mark a task as running on the NAS side."""
 

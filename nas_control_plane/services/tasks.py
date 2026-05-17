@@ -171,6 +171,42 @@ class TaskDispatchService:
         self._save_state()
         return updated
 
+    def cancel_task(self, task_id: str, requested_by: str | None = None) -> TaskRecord:
+        """Cancel one task when it has not reached a final completed state."""
+
+        try:
+            record = self._tasks[task_id]
+        except KeyError as exc:
+            raise KeyError(f"task not found: {task_id}") from exc
+
+        cancellable = record.status in {"queued", "dispatched", "running", "retry_pending"}
+        parameters = {
+            **record.parameters,
+            "cancel_requested_at": datetime.utcnow().isoformat(),
+            "cancel_requested_by": requested_by,
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        if cancellable:
+            parameters["cancel_request_accepted"] = True
+            updated = replace(
+                record,
+                status="cancelled",
+                retryable=False,
+                final=True,
+                parameters=parameters,
+            )
+        else:
+            parameters["cancel_request_accepted"] = False
+            parameters["cancel_blocked_reason"] = "task_already_final"
+            updated = replace(
+                record,
+                parameters=parameters,
+            )
+
+        self._tasks[task_id] = updated
+        self._save_state()
+        return updated
+
     def mark_running(self, payload: ScriptRunPayload) -> TaskRecord:
         """Mark one claimed task as running."""
 

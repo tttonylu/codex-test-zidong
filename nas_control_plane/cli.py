@@ -48,6 +48,14 @@ def build_parser() -> argparse.ArgumentParser:
     task = subparsers.add_parser("task")
     task.add_argument("task_id")
 
+    retry = subparsers.add_parser("retry")
+    retry.add_argument("task_id")
+    retry.add_argument("--requested-by", default="cli")
+
+    cancel = subparsers.add_parser("cancel")
+    cancel.add_argument("task_id")
+    cancel.add_argument("--requested-by", default="cli")
+
     logs = subparsers.add_parser("logs")
     logs.add_argument("--terminal-id")
     logs.add_argument("--task-id")
@@ -115,6 +123,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "task":
         print(render_task_summary(_item_to_namespace(client.get_task(args.task_id))))
+        return 0
+
+    if args.command == "retry":
+        print(render_task_summary(_item_to_namespace(client.retry_task(args.task_id, requested_by=args.requested_by))))
+        return 0
+
+    if args.command == "cancel":
+        print(render_task_summary(_item_to_namespace(client.cancel_task(args.task_id, requested_by=args.requested_by))))
         return 0
 
     if args.command == "logs":

@@ -183,6 +183,12 @@ def create_server(
                     self._send_json(HTTPStatus.OK, _record_to_dict(record))
                     return
 
+                if self.path == "/tasks/cancel":
+                    task_id = payload["task_id"]
+                    record = tasks.cancel_task(task_id, requested_by=payload.get("requested_by"))
+                    self._send_json(HTTPStatus.OK, _record_to_dict(record))
+                    return
+
                 if self.path == "/tasks/running":
                     run = _parse_script_run(payload)
                     task_record = tasks.mark_running(run)
