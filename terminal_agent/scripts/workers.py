@@ -62,6 +62,8 @@ class ScriptWorkerRegistry:
 
         try:
             outcome = self._dispatch(context)
+            if task.close_after_actions and task.instance_id and bitbrowser_client is not None:
+                outcome = self._append_close_step(outcome, bitbrowser_client.close_browser(task.instance_id))
             result = ActionResultPayload(
                 run_id=run.run_id,
                 task_id=task.task_id,
@@ -109,6 +111,27 @@ class ScriptWorkerRegistry:
         except KeyError as exc:
             raise ValueError(f"unsupported script: {context.task.script_name}") from exc
         return worker(context)
+
+    def _append_close_step(self, outcome: WorkerOutcome, close_result: Any) -> WorkerOutcome:
+        steps = list(outcome.steps)
+        steps.append(
+            {
+                "name": "close_browser",
+                "status": "completed",
+                "action": "close",
+                "result": close_result.get("data", {}),
+            }
+        )
+        return WorkerOutcome(
+            summary=outcome.summary,
+            details={**outcome.details, "close_browser_result": close_result.get("data", {})},
+            error_code=outcome.error_code,
+            error_message=outcome.error_message,
+            retryable=outcome.retryable,
+            final=outcome.final,
+            step_count=outcome.step_count + 1,
+            steps=steps,
+        )
 
 
 def _classify_worker_failure(script_name: str, exc: Exception) -> str:
