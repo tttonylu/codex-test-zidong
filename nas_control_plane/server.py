@@ -231,6 +231,10 @@ def _parse_task(payload: dict[str, Any]) -> TaskAssignmentPayload:
         script_name=payload["script_name"],
         parameters=dict(payload.get("parameters", {})),
         priority=int(payload.get("priority", 0)),
+        retry_limit=int(payload.get("retry_limit", 0)),
+        close_after_actions=bool(payload.get("close_after_actions", False)),
+        requested_by=payload.get("requested_by"),
+        metadata=dict(payload.get("metadata", {})),
     )
 
 
@@ -243,6 +247,10 @@ def _parse_action_result(payload: dict[str, Any]) -> ActionResultPayload:
         terminal_id=payload["terminal_id"],
         status=payload["status"],
         summary=payload["summary"],
+        error_code=payload.get("error_code"),
+        error_message=payload.get("error_message"),
+        retryable=payload.get("retryable"),
+        final=payload.get("final"),
         details=dict(payload.get("details", {})),
         emitted_at=emitted_at,
     )
@@ -261,6 +269,11 @@ def _parse_script_run(payload: dict[str, Any]) -> ScriptRunPayload:
         started_at=datetime.fromisoformat(started_at_raw) if started_at_raw else None,
         finished_at=datetime.fromisoformat(finished_at_raw) if finished_at_raw else None,
         metadata=dict(payload.get("metadata", {})),
+        step_count=int(payload.get("step_count", 0)),
+        error_code=payload.get("error_code"),
+        error_message=payload.get("error_message"),
+        retryable=payload.get("retryable"),
+        final=payload.get("final"),
     )
 
 
