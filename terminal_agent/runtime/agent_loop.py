@@ -51,17 +51,17 @@ class TerminalAgentLoop:
             for item in claimed_response.get("items", [])
         ]
         self._runtime.accept_task_assignments(claimed_assignments)
-        executions = [
-            self._worker_registry.execute(
+        executions: list[WorkerExecution] = []
+        for item in claimed_assignments:
+            execution = self._worker_registry.prepare_execution(
                 item,
                 terminal_hostname=self._runtime.registration_payload().hostname,
                 bitbrowser_client=self._bitbrowser_client,
                 metadata={"agent_version": self._runtime.registration_payload().agent_version},
             )
-            for item in claimed_assignments
-        ]
-        for execution in executions:
             self._nas_client.mark_task_running(execution.run)
+            executions.append(self._worker_registry.finish_execution(execution))
+        for execution in executions:
             self._nas_client.submit_task_result(execution.result)
 
         return {
@@ -90,4 +90,8 @@ def _task_from_dict(payload: dict[str, object]) -> TaskAssignmentPayload:
         script_name=str(payload["script_name"]),
         parameters=dict(payload.get("parameters", {})),
         priority=int(payload.get("priority", 0)),
+        retry_limit=int(payload.get("retry_limit", 0)),
+        close_after_actions=bool(payload.get("close_after_actions", False)),
+        requested_by=str(payload["requested_by"]) if payload.get("requested_by") is not None else None,
+        metadata=dict(payload.get("metadata", {})),
     )

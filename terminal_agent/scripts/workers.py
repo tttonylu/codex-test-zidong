@@ -16,8 +16,9 @@ from terminal_agent.scripts.types import WorkerContext, WorkerOutcome
 class WorkerExecution:
     """Represents one worker execution with start and finish payloads."""
 
+    context: WorkerContext
     run: ScriptRunPayload
-    result: ActionResultPayload
+    result: ActionResultPayload | None = None
 
 
 class ScriptWorkerRegistry:
@@ -31,7 +32,7 @@ class ScriptWorkerRegistry:
             "extract": extract_worker.execute,
         }
 
-    def execute(
+    def prepare_execution(
         self,
         task: TaskAssignmentPayload,
         *,
@@ -39,7 +40,7 @@ class ScriptWorkerRegistry:
         bitbrowser_client: Any = None,
         metadata: dict[str, Any] | None = None,
     ) -> WorkerExecution:
-        """Execute one task and build the corresponding lifecycle payloads."""
+        """Build the running payload and execution context before the worker runs."""
 
         started_at = datetime.utcnow()
         run = ScriptRunPayload(
@@ -59,13 +60,26 @@ class ScriptWorkerRegistry:
             bitbrowser_client=bitbrowser_client,
             metadata=dict(metadata or {}),
         )
+        return WorkerExecution(context=context, run=run)
+
+    def finish_execution(self, execution: WorkerExecution) -> WorkerExecution:
+        """Run the worker and attach the final result payload."""
+
+        task = execution.context.task
 
         try:
-            outcome = self._dispatch(context)
-            if task.close_after_actions and task.instance_id and bitbrowser_client is not None:
-                outcome = self._append_close_step(outcome, bitbrowser_client.close_browser(task.instance_id))
+            outcome = self._dispatch(execution.context)
+            if (
+                task.close_after_actions
+                and task.instance_id
+                and execution.context.bitbrowser_client is not None
+            ):
+                outcome = self._append_close_step(
+                    outcome,
+                    execution.context.bitbrowser_client.close_browser(task.instance_id),
+                )
             result = ActionResultPayload(
-                run_id=run.run_id,
+                run_id=execution.run.run_id,
                 task_id=task.task_id,
                 terminal_id=task.terminal_id,
                 status="completed",
@@ -85,7 +99,7 @@ class ScriptWorkerRegistry:
             error_code = _classify_worker_failure(task.script_name, exc)
             retryable = error_code in {"bitbrowser.request_failed", "bitbrowser.open_failed"}
             result = ActionResultPayload(
-                run_id=run.run_id,
+                run_id=execution.run.run_id,
                 task_id=task.task_id,
                 terminal_id=task.terminal_id,
                 status="failed",
@@ -103,7 +117,26 @@ class ScriptWorkerRegistry:
                 emitted_at=datetime.utcnow(),
             )
 
-        return WorkerExecution(run=run, result=result)
+        execution.result = result
+        return execution
+
+    def execute(
+        self,
+        task: TaskAssignmentPayload,
+        *,
+        terminal_hostname: str = "unknown",
+        bitbrowser_client: Any = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> WorkerExecution:
+        """Execute one task and build the corresponding lifecycle payloads."""
+
+        execution = self.prepare_execution(
+            task,
+            terminal_hostname=terminal_hostname,
+            bitbrowser_client=bitbrowser_client,
+            metadata=metadata,
+        )
+        return self.finish_execution(execution)
 
     def _dispatch(self, context: WorkerContext) -> WorkerOutcome:
         try:

@@ -6,6 +6,7 @@ import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from nas_control_plane.server import create_server
 from shared.protocol import TaskAssignmentPayload
@@ -54,6 +55,14 @@ class MockBitBrowserHandler(BaseHTTPRequestHandler):
                     "http": "127.0.0.1:53325",
                 },
             }
+        elif self.path == "/browser/close":
+            body = {
+                "success": True,
+                "data": {
+                    "id": payload.get("id"),
+                    "closed": True,
+                },
+            }
         else:
             self.send_response(404)
             self.end_headers()
@@ -71,7 +80,11 @@ class MockBitBrowserHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    nas = create_server(port=8771)
+    state_path = Path("nas_control_plane/state.execution-loop.demo.sqlite3")
+    if state_path.exists():
+        state_path.unlink()
+
+    nas = create_server(port=8771, state_path=state_path)
     bitbrowser = ThreadingHTTPServer(("127.0.0.1", 15437), MockBitBrowserHandler)
 
     nas_thread = threading.Thread(target=nas.serve_forever, daemon=True)
@@ -150,6 +163,8 @@ def main() -> None:
         nas.shutdown()
         bitbrowser.server_close()
         nas.server_close()
+        if state_path.exists():
+            state_path.unlink()
 
 
 if __name__ == "__main__":
