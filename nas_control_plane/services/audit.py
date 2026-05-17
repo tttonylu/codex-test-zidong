@@ -41,6 +41,21 @@ class AuditService:
 
         return list(self._logs)
 
+    def query_logs(
+        self,
+        *,
+        terminal_id: str | None = None,
+        task_id: str | None = None,
+        level: str | None = None,
+    ) -> list[ActionLogRecord]:
+        """Return logs matching the requested filters."""
+
+        return [
+            record
+            for record in self._logs
+            if _matches_log(record, terminal_id=terminal_id, task_id=task_id, level=level)
+        ]
+
     def _load_state(self) -> None:
         if self._repository is None:
             return
@@ -52,3 +67,19 @@ class AuditService:
             return
 
         self._repository.save_logs(self._logs)
+
+
+def _matches_log(
+    record: ActionLogRecord,
+    *,
+    terminal_id: str | None,
+    task_id: str | None,
+    level: str | None,
+) -> bool:
+    if terminal_id is not None and record.terminal_id != terminal_id:
+        return False
+    if task_id is not None and record.task_id != task_id:
+        return False
+    if level is not None and record.level != level:
+        return False
+    return True

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from dataclasses import replace
+from collections.abc import Iterable
 
 from nas_control_plane.models import TaskRecord
 from nas_control_plane.services.repositories import TaskRepository
@@ -44,6 +45,38 @@ class TaskDispatchService:
         if terminal_id is None:
             return records
         return [record for record in records if record.terminal_id == terminal_id]
+
+    def get_task(self, task_id: str) -> TaskRecord:
+        """Return one task by identifier."""
+
+        try:
+            return self._tasks[task_id]
+        except KeyError as exc:
+            raise KeyError(f"task not found: {task_id}") from exc
+
+    def query_tasks(
+        self,
+        *,
+        terminal_id: str | None = None,
+        status: str | None = None,
+        script_name: str | None = None,
+        retryable: bool | None = None,
+        final: bool | None = None,
+    ) -> list[TaskRecord]:
+        """Return tasks matching the requested filters."""
+
+        records = self.list_tasks(terminal_id=terminal_id)
+        return [
+            record
+            for record in records
+            if _matches_task_filter(
+                record,
+                status=status,
+                script_name=script_name,
+                retryable=retryable,
+                final=final,
+            )
+        ]
 
     def claim_tasks(self, terminal_id: str) -> list[TaskRecord]:
         """Return queued tasks for one terminal and mark them as dispatched."""
@@ -180,3 +213,22 @@ def updated_retry_limit_exhausted(record: TaskRecord) -> bool:
     """Return whether one more retry would exceed the configured limit."""
 
     return record.attempt_count >= record.retry_limit + 1
+
+
+def _matches_task_filter(
+    record: TaskRecord,
+    *,
+    status: str | None,
+    script_name: str | None,
+    retryable: bool | None,
+    final: bool | None,
+) -> bool:
+    if status is not None and record.status != status:
+        return False
+    if script_name is not None and record.script_name != script_name:
+        return False
+    if retryable is not None and record.retryable is not retryable:
+        return False
+    if final is not None and record.final is not final:
+        return False
+    return True

@@ -9,7 +9,9 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote_plus
 
+from nas_control_plane.dashboard_html import DASHBOARD_HTML
 from nas_control_plane.services import (
     AuditLogRepository,
     AuditService,
@@ -49,29 +51,77 @@ def create_server(
         server_version = "BPlusNAS/0.1"
 
         def do_GET(self) -> None:  # noqa: N802
-            if self.path == "/healthz":
+            path = self._path_without_query()
+
+            if path == "/healthz":
                 self._send_json(HTTPStatus.OK, {"status": "ok"})
                 return
 
-            if self.path == "/terminals":
-                terminals = [_record_to_dict(record) for record in registry.list_terminals()]
-                self._send_json(HTTPStatus.OK, {"items": terminals})
+            if path == "/dashboard":
+                self._send_html(HTTPStatus.OK, DASHBOARD_HTML)
                 return
 
-            if self.path == "/instances":
-                instances = [_record_to_dict(record) for record in registry.list_instances()]
-                self._send_json(HTTPStatus.OK, {"items": instances})
+            if path == "/terminals":
+                payload = [
+                    _record_to_dict(record)
+                    for record in registry.list_terminals(
+                        status=self._query_param("status"),
+                        operator_name=self._query_param("operator_name"),
+                    )
+                ]
+                self._send_json(HTTPStatus.OK, {"items": payload})
                 return
 
-            if self.path == "/logs":
-                logs = [_record_to_dict(record) for record in audit.list_logs()]
-                self._send_json(HTTPStatus.OK, {"items": logs})
+            if path == "/instances":
+                payload = [
+                    _record_to_dict(record)
+                    for record in registry.list_instances(
+                        terminal_id=self._query_param("terminal_id"),
+                        runtime_status=self._query_param("runtime_status"),
+                    )
+                ]
+                self._send_json(HTTPStatus.OK, {"items": payload})
                 return
 
-            if self.path.startswith("/tasks"):
-                terminal_id = self._query_param("terminal_id")
-                items = [_record_to_dict(record) for record in tasks.list_tasks(terminal_id=terminal_id)]
-                self._send_json(HTTPStatus.OK, {"items": items})
+            if path == "/logs":
+                payload = [
+                    _record_to_dict(record)
+                    for record in audit.query_logs(
+                        terminal_id=self._query_param("terminal_id"),
+                        task_id=self._query_param("task_id"),
+                        level=self._query_param("level"),
+                    )
+                ]
+                self._send_json(HTTPStatus.OK, {"items": payload})
+                return
+
+            if path == "/tasks":
+                payload = [
+                    _record_to_dict(record)
+                    for record in tasks.query_tasks(
+                        terminal_id=self._query_param("terminal_id"),
+                        status=self._query_param("status"),
+                        script_name=self._query_param("script_name"),
+                        retryable=_parse_bool(self._query_param("retryable")),
+                        final=_parse_bool(self._query_param("final")),
+                    )
+                ]
+                self._send_json(HTTPStatus.OK, {"items": payload})
+                return
+
+            if path.startswith("/task/"):
+                task_id = path.split("/task/", 1)[1]
+                self._send_json(HTTPStatus.OK, _record_to_dict(tasks.get_task(task_id)))
+                return
+
+            if path.startswith("/terminal/"):
+                terminal_id = path.split("/terminal/", 1)[1]
+                self._send_json(HTTPStatus.OK, _record_to_dict(registry.get_terminal(terminal_id)))
+                return
+
+            if path.startswith("/instance/"):
+                instance_id = path.split("/instance/", 1)[1]
+                self._send_json(HTTPStatus.OK, _record_to_dict(registry.get_instance(instance_id)))
                 return
 
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
@@ -79,6 +129,7 @@ def create_server(
         def do_POST(self) -> None:  # noqa: N802
             try:
                 payload = self._read_json()
+
                 if self.path == "/register":
                     record = registry.register_terminal(_parse_registration(payload))
                     self._send_json(HTTPStatus.OK, _record_to_dict(record))
@@ -164,19 +215,29 @@ def create_server(
             self.end_headers()
             self.wfile.write(body)
 
+        def _send_html(self, status: HTTPStatus, body: str) -> None:
+            raw = body.encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+
         def _query_param(self, name: str) -> str | None:
             raw_path = self.path.split("?", 1)
             if len(raw_path) == 1:
                 return None
 
-            query = raw_path[1]
-            for item in query.split("&"):
+            for item in raw_path[1].split("&"):
                 if "=" not in item:
                     continue
                 key, value = item.split("=", 1)
                 if key == name:
-                    return value
+                    return unquote_plus(value)
             return None
+
+        def _path_without_query(self) -> str:
+            return self.path.split("?", 1)[0]
 
     return ThreadingHTTPServer((host, port), RequestHandler)
 
@@ -281,6 +342,17 @@ def _parse_script_run(payload: dict[str, Any]) -> ScriptRunPayload:
         retryable=payload.get("retryable"),
         final=payload.get("final"),
     )
+
+
+def _parse_bool(raw: str | None) -> bool | None:
+    if raw is None:
+        return None
+    value = raw.strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"invalid boolean value: {raw}")
 
 
 def _record_to_dict(record: Any) -> dict[str, Any]:

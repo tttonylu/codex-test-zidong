@@ -107,17 +107,50 @@ class TerminalRegistryService:
         self._save_state()
         return synced
 
-    def list_terminals(self) -> list[TerminalRecord]:
-        """Return all known terminals."""
+    def list_terminals(
+        self,
+        *,
+        status: str | None = None,
+        operator_name: str | None = None,
+    ) -> list[TerminalRecord]:
+        """Return known terminals, optionally filtered."""
 
-        return list(self._terminals.values())
+        return [
+            record
+            for record in self._terminals.values()
+            if _matches_terminal(record, status=status, operator_name=operator_name)
+        ]
 
-    def list_instances(self, terminal_id: str | None = None) -> list[InstanceRecord]:
-        """Return known instances, optionally filtered by terminal."""
+    def get_terminal(self, terminal_id: str) -> TerminalRecord:
+        """Return one terminal by identifier."""
 
-        if terminal_id is None:
-            return list(self._instances.values())
-        return [record for record in self._instances.values() if record.terminal_id == terminal_id]
+        try:
+            return self._terminals[terminal_id]
+        except KeyError as exc:
+            raise KeyError(f"terminal not found: {terminal_id}") from exc
+
+    def list_instances(
+        self,
+        *,
+        terminal_id: str | None = None,
+        runtime_status: str | None = None,
+    ) -> list[InstanceRecord]:
+        """Return known instances, optionally filtered."""
+
+        records = list(self._instances.values())
+        if terminal_id is not None:
+            records = [record for record in records if record.terminal_id == terminal_id]
+        if runtime_status is not None:
+            records = [record for record in records if record.runtime_status == runtime_status]
+        return records
+
+    def get_instance(self, instance_id: str) -> InstanceRecord:
+        """Return one instance by identifier."""
+
+        try:
+            return self._instances[instance_id]
+        except KeyError as exc:
+            raise KeyError(f"instance not found: {instance_id}") from exc
 
     def _require_terminal(self, terminal_id: str) -> TerminalRecord:
         try:
@@ -138,3 +171,16 @@ class TerminalRegistryService:
 
         self._repository.save_terminals(self._terminals)
         self._repository.save_instances(self._instances)
+
+
+def _matches_terminal(
+    record: TerminalRecord,
+    *,
+    status: str | None,
+    operator_name: str | None,
+) -> bool:
+    if status is not None and record.status != status:
+        return False
+    if operator_name is not None and record.operator_name != operator_name:
+        return False
+    return True

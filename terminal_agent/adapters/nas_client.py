@@ -46,15 +46,69 @@ class NasControlPlaneClient:
         }
         return self._post_json("/instances/sync", body)
 
-    def list_terminals(self) -> dict[str, Any]:
-        """Fetch the current terminal view from the NAS."""
+    def list_terminals(
+        self,
+        *,
+        status: str | None = None,
+        operator_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch terminals using optional filter parameters."""
 
-        return self._get_json("/terminals")
+        params: dict[str, str] = {}
+        if status is not None:
+            params["status"] = status
+        if operator_name is not None:
+            params["operator_name"] = operator_name
+        path = "/terminals"
+        if params:
+            path = f"/terminals?{urlencode(params)}"
+        return self._get_json(path)
 
-    def list_instances(self) -> dict[str, Any]:
-        """Fetch the current instance view from the NAS."""
+    def get_terminal(self, terminal_id: str) -> dict[str, Any]:
+        """Fetch one terminal record by identifier."""
 
-        return self._get_json("/instances")
+        return self._get_json(f"/terminal/{terminal_id}")
+
+    def list_instances(
+        self,
+        *,
+        terminal_id: str | None = None,
+        runtime_status: str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch instances using optional filter parameters."""
+
+        params: dict[str, str] = {}
+        if terminal_id is not None:
+            params["terminal_id"] = terminal_id
+        if runtime_status is not None:
+            params["runtime_status"] = runtime_status
+        path = "/instances"
+        if params:
+            path = f"/instances?{urlencode(params)}"
+        return self._get_json(path)
+
+    def query_instances(
+        self,
+        *,
+        terminal_id: str | None = None,
+        runtime_status: str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch instances using optional filter parameters."""
+
+        params: dict[str, str] = {}
+        if terminal_id is not None:
+            params["terminal_id"] = terminal_id
+        if runtime_status is not None:
+            params["runtime_status"] = runtime_status
+        return self.list_instances(
+            terminal_id=terminal_id,
+            runtime_status=runtime_status,
+        )
+
+    def get_instance(self, instance_id: str) -> dict[str, Any]:
+        """Fetch one instance record by identifier."""
+
+        return self._get_json(f"/instance/{instance_id}")
 
     def create_task(self, payload: TaskAssignmentPayload) -> dict[str, Any]:
         """Create a task on the NAS side."""
@@ -67,6 +121,38 @@ class NasControlPlaneClient:
         path = "/tasks"
         if terminal_id is not None:
             path = f"/tasks?{urlencode({'terminal_id': terminal_id})}"
+        return self._get_json(path)
+
+    def get_task(self, task_id: str) -> dict[str, Any]:
+        """Fetch one task record by identifier."""
+
+        return self._get_json(f"/task/{task_id}")
+
+    def query_tasks(
+        self,
+        *,
+        terminal_id: str | None = None,
+        status: str | None = None,
+        script_name: str | None = None,
+        retryable: bool | None = None,
+        final: bool | None = None,
+    ) -> dict[str, Any]:
+        """Fetch tasks using optional filter parameters."""
+
+        params: dict[str, str] = {}
+        if terminal_id is not None:
+            params["terminal_id"] = terminal_id
+        if status is not None:
+            params["status"] = status
+        if script_name is not None:
+            params["script_name"] = script_name
+        if retryable is not None:
+            params["retryable"] = str(retryable).lower()
+        if final is not None:
+            params["final"] = str(final).lower()
+        path = "/tasks"
+        if params:
+            path = f"/tasks?{urlencode(params)}"
         return self._get_json(path)
 
     def claim_tasks(self, terminal_id: str) -> dict[str, Any]:
@@ -93,6 +179,27 @@ class NasControlPlaneClient:
         """Fetch audit log entries from the NAS."""
 
         return self._get_json("/logs")
+
+    def query_logs(
+        self,
+        *,
+        terminal_id: str | None = None,
+        task_id: str | None = None,
+        level: str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch logs using optional filter parameters."""
+
+        params: dict[str, str] = {}
+        if terminal_id is not None:
+            params["terminal_id"] = terminal_id
+        if task_id is not None:
+            params["task_id"] = task_id
+        if level is not None:
+            params["level"] = level
+        path = "/logs"
+        if params:
+            path = f"/logs?{urlencode(params)}"
+        return self._get_json(path)
 
     def healthcheck(self) -> dict[str, Any]:
         """Check whether the NAS service is healthy."""
