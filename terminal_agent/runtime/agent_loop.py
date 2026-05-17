@@ -45,7 +45,10 @@ class TerminalAgentLoop:
         )
         self._runtime.mark_instances_synced()
 
-        claimed_response = self._nas_client.claim_tasks(self._runtime.registration_payload().terminal_id)
+        claimed_response = self._nas_client.claim_tasks(
+            self._runtime.registration_payload().terminal_id,
+            max_tasks=self._runtime.claim_capacity(),
+        )
         claimed_assignments = [
             _task_from_dict(item)
             for item in claimed_response.get("items", [])

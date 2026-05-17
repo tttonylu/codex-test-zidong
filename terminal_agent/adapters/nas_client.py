@@ -155,10 +155,13 @@ class NasControlPlaneClient:
             path = f"/tasks?{urlencode(params)}"
         return self._get_json(path)
 
-    def claim_tasks(self, terminal_id: str) -> dict[str, Any]:
+    def claim_tasks(self, terminal_id: str, max_tasks: int | None = None) -> dict[str, Any]:
         """Claim queued tasks assigned to one terminal."""
 
-        return self._post_json("/tasks/claim", {"terminal_id": terminal_id})
+        payload: dict[str, Any] = {"terminal_id": terminal_id}
+        if max_tasks is not None:
+            payload["max_tasks"] = max_tasks
+        return self._post_json("/tasks/claim", payload)
 
     def submit_task_result(self, payload: ActionResultPayload) -> dict[str, Any]:
         """Submit one task execution result back to the NAS."""

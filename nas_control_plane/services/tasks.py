@@ -84,25 +84,29 @@ class TaskDispatchService:
             )
         ]
 
-    def claim_tasks(self, terminal_id: str) -> list[TaskRecord]:
-        """Return queued tasks for one terminal and mark them as dispatched."""
+    def claim_tasks(self, terminal_id: str, limit: int | None = None) -> list[TaskRecord]:
+        """Return claimable tasks for one terminal and mark them as dispatched."""
 
-        claimed: list[TaskRecord] = []
+        eligible: list[TaskRecord] = []
         now = self._now_fn()
-        for task_id, record in list(self._tasks.items()):
+        for record in self._tasks.values():
             if record.terminal_id != terminal_id:
                 continue
             if record.status == "queued":
-                pass
+                eligible.append(record)
             elif record.status == "retry_pending":
-                if not retry_task_ready(record, now):
-                    continue
-            else:
-                continue
+                if retry_task_ready(record, now):
+                    eligible.append(record)
+
+        eligible.sort(key=lambda item: (-item.priority, item.created_at))
+        if limit is not None:
+            eligible = eligible[: max(0, limit)]
+
+        claimed: list[TaskRecord] = []
+        for record in eligible:
             updated = replace(record, status="dispatched")
-            self._tasks[task_id] = updated
+            self._tasks[record.task_id] = updated
             claimed.append(updated)
-        claimed.sort(key=lambda item: (-item.priority, item.created_at))
         self._save_state()
         return claimed
 

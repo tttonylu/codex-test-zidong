@@ -20,9 +20,11 @@ class TerminalRuntime:
         operator_name: str,
         agent_version: str,
         capabilities: list[str] | None = None,
+        max_parallel_tasks: int | None = None,
     ) -> None:
         self._operator_name = operator_name
         self._capabilities = list(capabilities or [])
+        self._max_parallel_tasks = max_parallel_tasks
         self._instance_manager = InstanceManager()
         self._tasks: dict[str, LocalTask] = {}
         self._state = TerminalState(
@@ -47,7 +49,10 @@ class TerminalRuntime:
             operator_name=self._operator_name,
             agent_version=self._state.agent_version,
             capabilities=list(self._capabilities),
-            metadata=dict(self._state.metadata),
+            metadata={
+                **self._state.metadata,
+                "max_parallel_tasks": self._max_parallel_tasks,
+            },
         )
 
     def accept_tasks(self, tasks: Iterable[LocalTask]) -> list[LocalTask]:
@@ -103,8 +108,18 @@ class TerminalRuntime:
             status=self._state.status,
             active_instance_count=self._state.active_instance_count,
             queued_task_count=self._state.queued_task_count,
-            metadata=dict(self._state.metadata),
+            metadata={
+                **self._state.metadata,
+                "max_parallel_tasks": self._max_parallel_tasks,
+            },
         )
+
+    def claim_capacity(self) -> int | None:
+        """Return how many tasks this terminal should claim in one cycle."""
+
+        if self._max_parallel_tasks is None:
+            return None
+        return max(0, self._max_parallel_tasks)
 
     def instance_snapshot_payloads(self) -> list[InstanceSnapshotPayload]:
         """Build sync payloads for all known local instances."""

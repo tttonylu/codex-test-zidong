@@ -159,7 +159,8 @@ def create_server(
 
                 if self.path == "/tasks/claim":
                     terminal_id = payload["terminal_id"]
-                    records = tasks.claim_tasks(terminal_id)
+                    max_tasks = payload.get("max_tasks")
+                    records = tasks.claim_tasks(terminal_id, limit=int(max_tasks) if max_tasks is not None else None)
                     self._send_json(
                         HTTPStatus.OK,
                         {"terminal_id": terminal_id, "items": [_record_to_dict(record) for record in records]},
