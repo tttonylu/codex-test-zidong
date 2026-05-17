@@ -68,6 +68,8 @@ class TaskDispatchService:
         script_name: str | None = None,
         retryable: bool | None = None,
         final: bool | None = None,
+        wait_reason: str | None = None,
+        blocked_by_instance_id: str | None = None,
     ) -> list[TaskRecord]:
         """Return tasks matching the requested filters."""
 
@@ -81,6 +83,8 @@ class TaskDispatchService:
                 script_name=script_name,
                 retryable=retryable,
                 final=final,
+                wait_reason=wait_reason,
+                blocked_by_instance_id=blocked_by_instance_id,
             )
         ]
 
@@ -338,6 +342,8 @@ def _matches_task_filter(
     script_name: str | None,
     retryable: bool | None,
     final: bool | None,
+    wait_reason: str | None,
+    blocked_by_instance_id: str | None,
 ) -> bool:
     if status is not None and record.status != status:
         return False
@@ -346,6 +352,11 @@ def _matches_task_filter(
     if retryable is not None and record.retryable is not retryable:
         return False
     if final is not None and record.final is not final:
+        return False
+    parameters = record.parameters or {}
+    if wait_reason is not None and parameters.get("wait_reason") != wait_reason:
+        return False
+    if blocked_by_instance_id is not None and parameters.get("blocked_by_instance_id") != blocked_by_instance_id:
         return False
     return True
 

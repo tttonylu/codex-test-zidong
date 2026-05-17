@@ -27,6 +27,9 @@ def build_parser() -> argparse.ArgumentParser:
     terminals = subparsers.add_parser("terminals")
     terminals.add_argument("--status")
     terminals.add_argument("--operator-name")
+    terminals.add_argument("--min-active-task-count")
+    terminals.add_argument("--max-parallel-tasks")
+    terminals.add_argument("--blocked-instance-id")
 
     terminal = subparsers.add_parser("terminal")
     terminal.add_argument("terminal_id")
@@ -44,6 +47,8 @@ def build_parser() -> argparse.ArgumentParser:
     tasks.add_argument("--script-name")
     tasks.add_argument("--retryable")
     tasks.add_argument("--final")
+    tasks.add_argument("--wait-reason")
+    tasks.add_argument("--blocked-by-instance-id")
 
     task = subparsers.add_parser("task")
     task.add_argument("task_id")
@@ -75,6 +80,9 @@ def main(argv: list[str] | None = None) -> int:
         items = client.list_terminals(
             status=args.status,
             operator_name=args.operator_name,
+            min_active_task_count=_parse_int(args.min_active_task_count),
+            max_parallel_tasks=_parse_int(args.max_parallel_tasks),
+            blocked_instance_id=args.blocked_instance_id,
         )["items"]
         print(
             render_collection(
@@ -112,6 +120,8 @@ def main(argv: list[str] | None = None) -> int:
             script_name=args.script_name,
             retryable=_parse_bool(args.retryable),
             final=_parse_bool(args.final),
+            wait_reason=args.wait_reason,
+            blocked_by_instance_id=args.blocked_by_instance_id,
         )["items"]
         print(
             render_collection(
@@ -159,6 +169,12 @@ def _parse_bool(raw: str | None) -> bool | None:
     if value in {"0", "false", "no", "off"}:
         return False
     raise ValueError(f"invalid boolean value: {raw}")
+
+
+def _parse_int(raw: str | None) -> int | None:
+    if raw is None:
+        return None
+    return int(raw)
 
 
 def _item_to_namespace(payload: dict[str, Any]) -> Any:

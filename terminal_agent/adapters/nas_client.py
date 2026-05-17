@@ -51,6 +51,9 @@ class NasControlPlaneClient:
         *,
         status: str | None = None,
         operator_name: str | None = None,
+        min_active_task_count: int | None = None,
+        max_parallel_tasks: int | None = None,
+        blocked_instance_id: str | None = None,
     ) -> dict[str, Any]:
         """Fetch terminals using optional filter parameters."""
 
@@ -59,6 +62,12 @@ class NasControlPlaneClient:
             params["status"] = status
         if operator_name is not None:
             params["operator_name"] = operator_name
+        if min_active_task_count is not None:
+            params["min_active_task_count"] = str(min_active_task_count)
+        if max_parallel_tasks is not None:
+            params["max_parallel_tasks"] = str(max_parallel_tasks)
+        if blocked_instance_id is not None:
+            params["blocked_instance_id"] = blocked_instance_id
         path = "/terminals"
         if params:
             path = f"/terminals?{urlencode(params)}"
@@ -136,6 +145,8 @@ class NasControlPlaneClient:
         script_name: str | None = None,
         retryable: bool | None = None,
         final: bool | None = None,
+        wait_reason: str | None = None,
+        blocked_by_instance_id: str | None = None,
     ) -> dict[str, Any]:
         """Fetch tasks using optional filter parameters."""
 
@@ -150,6 +161,10 @@ class NasControlPlaneClient:
             params["retryable"] = str(retryable).lower()
         if final is not None:
             params["final"] = str(final).lower()
+        if wait_reason is not None:
+            params["wait_reason"] = wait_reason
+        if blocked_by_instance_id is not None:
+            params["blocked_by_instance_id"] = blocked_by_instance_id
         path = "/tasks"
         if params:
             path = f"/tasks?{urlencode(params)}"

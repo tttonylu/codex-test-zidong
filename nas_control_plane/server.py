@@ -69,6 +69,9 @@ def create_server(
                     for record in registry.list_terminals(
                         status=self._query_param("status"),
                         operator_name=self._query_param("operator_name"),
+                        min_active_task_count=_parse_int(self._query_param("min_active_task_count")),
+                        max_parallel_tasks=_parse_int(self._query_param("max_parallel_tasks")),
+                        blocked_instance_id=self._query_param("blocked_instance_id"),
                     )
                 ]
                 self._send_json(HTTPStatus.OK, {"items": payload})
@@ -106,6 +109,8 @@ def create_server(
                         script_name=self._query_param("script_name"),
                         retryable=_parse_bool(self._query_param("retryable")),
                         final=_parse_bool(self._query_param("final")),
+                        wait_reason=self._query_param("wait_reason"),
+                        blocked_by_instance_id=self._query_param("blocked_by_instance_id"),
                     )
                 ]
                 self._send_json(HTTPStatus.OK, {"items": payload})
@@ -371,6 +376,12 @@ def _parse_bool(raw: str | None) -> bool | None:
     if value in {"0", "false", "no", "off"}:
         return False
     raise ValueError(f"invalid boolean value: {raw}")
+
+
+def _parse_int(raw: str | None) -> int | None:
+    if raw is None:
+        return None
+    return int(raw)
 
 
 def _record_to_dict(record: Any) -> dict[str, Any]:

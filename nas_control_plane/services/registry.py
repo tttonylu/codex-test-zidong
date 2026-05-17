@@ -114,13 +114,23 @@ class TerminalRegistryService:
         *,
         status: str | None = None,
         operator_name: str | None = None,
+        min_active_task_count: int | None = None,
+        max_parallel_tasks: int | None = None,
+        blocked_instance_id: str | None = None,
     ) -> list[TerminalRecord]:
         """Return known terminals, optionally filtered."""
 
         return [
             record
             for record in self._terminals.values()
-            if _matches_terminal(record, status=status, operator_name=operator_name)
+            if _matches_terminal(
+                record,
+                status=status,
+                operator_name=operator_name,
+                min_active_task_count=min_active_task_count,
+                max_parallel_tasks=max_parallel_tasks,
+                blocked_instance_id=blocked_instance_id,
+            )
         ]
 
     def get_terminal(self, terminal_id: str) -> TerminalRecord:
@@ -180,9 +190,21 @@ def _matches_terminal(
     *,
     status: str | None,
     operator_name: str | None,
+    min_active_task_count: int | None,
+    max_parallel_tasks: int | None,
+    blocked_instance_id: str | None,
 ) -> bool:
     if status is not None and record.status != status:
         return False
     if operator_name is not None and record.operator_name != operator_name:
         return False
+    metadata = record.metadata or {}
+    if min_active_task_count is not None and int(metadata.get("active_task_count", 0)) < min_active_task_count:
+        return False
+    if max_parallel_tasks is not None and int(metadata.get("max_parallel_tasks", -1)) != max_parallel_tasks:
+        return False
+    if blocked_instance_id is not None:
+        blocked = {str(item) for item in metadata.get("blocked_instance_ids", [])}
+        if blocked_instance_id not in blocked:
+            return False
     return True
