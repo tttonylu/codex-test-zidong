@@ -91,6 +91,9 @@ def main() -> None:
                 script_name="follow",
                 parameters={"target_handle": "user_exec_a"},
                 priority=10,
+                retry_limit=1,
+                close_after_actions=True,
+                requested_by="demo",
             ),
             TaskAssignmentPayload(
                 task_id="task-exec-02",
@@ -99,6 +102,9 @@ def main() -> None:
                 script_name="chat",
                 parameters={"target_handle": "user_exec_b"},
                 priority=5,
+                retry_limit=2,
+                close_after_actions=True,
+                requested_by="demo",
             ),
         ]:
             nas_client.create_task(task)
@@ -130,6 +136,7 @@ def main() -> None:
                             "task_close_flags": [item["close_after_actions"] for item in tasks["items"]],
                             "task_result_codes": [item["parameters"].get("result_details", {}).get("error_code") for item in tasks["items"]],
                             "task_result_step_counts": [item["parameters"].get("result_details", {}).get("step_count") for item in tasks["items"]],
+                            "task_attempt_counts": [item["attempt_count"] for item in tasks["items"]],
                             "log_levels": [item["level"] for item in logs["items"]],
                             "log_messages": [item["message"] for item in logs["items"]],
                         },
