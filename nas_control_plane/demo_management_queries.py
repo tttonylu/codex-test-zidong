@@ -169,6 +169,7 @@ def main() -> None:
             )
         )
     finally:
+        loop.shutdown()
         bitbrowser.shutdown()
         nas.shutdown()
         bitbrowser.server_close()

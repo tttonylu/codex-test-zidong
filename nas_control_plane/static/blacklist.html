@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>黑名单 - BPlus</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f7fa;
+  color: #1e293b;
+  min-height: 100vh;
+  padding: 24px;
+}
+.page-header { margin-bottom: 24px; }
+.page-header h1 { font-size: 24px; font-weight: 700; color: #0f172a; }
+.page-header p { font-size: 14px; color: #64748b; margin-top: 4px; }
+.panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.panel-header h2 { font-size: 16px; font-weight: 600; color: #0f172a; }
+.panel-body { padding: 20px; }
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  text-align: left; padding: 12px 16px;
+  font-size: 12px; font-weight: 600; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.table td { padding: 12px 16px; font-size: 14px; color: #334155; border-bottom: 1px solid #f8fafc; }
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: #f8fafc; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1px solid #e2e8f0; background: #fff; color: #334155;
+  transition: all 0.15s;
+}
+.btn:hover { border-color: #cbd5e1; background: #f8fafc; }
+.btn.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.btn.primary:hover { background: #1d4ed8; }
+.btn.primary:disabled { background: #93c5fd; border-color: #93c5fd; cursor: not-allowed; }
+.btn.danger { background: #dc2626; color: #fff; border-color: #dc2626; }
+.btn.danger:hover { background: #b91c1c; }
+.btn.sm { padding: 5px 12px; font-size: 12px; }
+.form-input {
+  width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 14px; color: #334155; background: #fafbfc; transition: border-color 0.15s;
+}
+.form-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+.form-row { display: flex; gap: 12px; align-items: flex-end; }
+.form-row .form-group { flex: 1; margin-bottom: 0; }
+.stats-bar { display: flex; gap: 16px; margin-bottom: 20px; }
+.stat-card {
+  flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; text-align: center;
+}
+.stat-card .num { font-size: 28px; font-weight: 700; color: #0f172a; }
+.stat-card .label { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.stat-card.red .num { color: #dc2626; }
+.empty { text-align: center; padding: 48px 20px; color: #94a3b8; font-size: 14px; }
+.search-bar { position: relative; max-width: 280px; }
+.search-bar input {
+  width: 100%; padding: 8px 12px 8px 32px;
+  border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155;
+}
+.search-bar input:focus { outline: none; border-color: #2563eb; }
+.search-bar svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+.user-id-cell { font-family: 'SF Mono', 'Consolas', monospace; font-size: 13px; color: #dc2626; background: #fef2f2; padding: 2px 8px; border-radius: 4px; }
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #fff; background: #1e293b; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.3s ease; }
+.toast.error { background: #dc2626; }
+.toast.success { background: #16a34a; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@media (max-width: 768px) { .stats-bar { flex-direction: column; } .form-row { flex-direction: column; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="toast-container">
+    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">{{ t.message }}</div>
+  </div>
+
+  <div class="page-header">
+    <h1>黑名单</h1>
+    <p>管理被拒绝的用户，这些用户将不会收到关注或私信</p>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card red">
+      <div class="num">{{ blacklist.length }}</div>
+      <div class="label">黑名单用户</div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom: 20px">
+    <div class="panel-header"><h2>添加黑名单</h2></div>
+    <div class="panel-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">用户 ID / 用户名</label>
+          <input class="form-input" v-model="newUserId" placeholder="输入用户 ID 或用户名" @keyup.enter="addBlacklist" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">原因（可选）</label>
+          <input class="form-input" v-model="newReason" placeholder="拉黑原因" @keyup.enter="addBlacklist" />
+        </div>
+        <div style="padding-bottom:0">
+          <button class="btn primary" @click="addBlacklist" :disabled="!newUserId.trim() || adding">
+            {{ adding ? '添加中...' : '添加' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>黑名单列表</h2>
+      <div class="search-bar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input v-model="searchQuery" placeholder="搜索用户 ID..." />
+      </div>
+    </div>
+    <div class="panel-body" style="padding:0">
+      <table class="table" v-if="filteredBlacklist.length">
+        <thead>
+          <tr><th>用户 ID</th><th>原因</th><th>来源</th><th>添加时间</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in filteredBlacklist" :key="item.target_id">
+            <td><span class="user-id-cell">{{ item.target_value || item.target_id }}</span></td>
+            <td>{{ item.reason || '-' }}</td>
+            <td style="font-size:12px;color:#94a3b8">{{ item.source || '-' }}</td>
+            <td>{{ formatTime(item.created_at) }}</td>
+            <td>
+              <button class="btn sm danger" @click="removeBlacklist(item.target_id)">移除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty" v-else>
+        <p>{{ searchQuery ? '未找到匹配的用户' : '黑名单为空' }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = '';
+const TOKEN = 'xm2026_a1b2c3d4e5';
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const blacklist = ref([]);
+    const newUserId = ref('');
+    const newReason = ref('');
+    const adding = ref(false);
+    const searchQuery = ref('');
+    const toasts = ref([]);
+
+    const filteredBlacklist = computed(() => {
+      if (!searchQuery.value.trim()) return blacklist.value;
+      const q = searchQuery.value.toLowerCase();
+      return blacklist.value.filter(item => {
+        const val = String(item.target_value || item.target_id || '').toLowerCase();
+        return val.includes(q);
+      });
+    });
+
+    function toast(msg, type = '') {
+      const id = Date.now();
+      toasts.value.push({ id, message: msg, type });
+      setTimeout(() => toasts.value = toasts.value.filter(t => t.id !== id), 3000);
+    }
+
+    function formatTime(t) {
+      if (!t) return '-';
+      try {
+        const d = new Date(t);
+        if (isNaN(d.getTime())) return t;
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } catch { return t; }
+    }
+
+    async function fetchBlacklist() {
+      try {
+        const res = await fetch(`${API_BASE}/blacklist`, { headers: { 'X-API-Token': TOKEN } });
+        if (!res.ok) { toast('获取黑名单数据失败', 'error'); return; }
+        const data = await res.json();
+        blacklist.value = Array.isArray(data) ? data : (data.items || []);
+      } catch (e) { toast('网络错误', 'error'); console.error('[Blacklist] fetch error:', e); }
+    }
+
+    async function addBlacklist() {
+      const userId = newUserId.value.trim();
+      if (!userId) return;
+      adding.value = true;
+      try {
+        const res = await fetch(`${API_BASE}/blacklist/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-API-Token': TOKEN },
+          body: JSON.stringify({ target_value: userId, reason: newReason.value.trim() || '手动添加' })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        toast(`已将 ${userId} 加入黑名单`, 'success');
+        newUserId.value = '';
+        newReason.value = '';
+        fetchBlacklist();
+      } catch (e) {
+        toast('添加失败', 'error');
+      } finally { adding.value = false; }
+    }
+
+    async function removeBlacklist(targetId) {
+      if (!confirm('确定移除该黑名单条目？')) return;
+      try {
+        const res = await fetch(`${API_BASE}/blacklist/remove`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-API-Token': TOKEN },
+          body: JSON.stringify({ target_id: targetId })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        toast('已移除', 'success');
+        fetchBlacklist();
+      } catch (e) { toast('移除失败', 'error'); }
+    }
+
+    onMounted(() => { fetchBlacklist(); });
+
+    return { blacklist, newUserId, newReason, adding, searchQuery, filteredBlacklist, toasts, formatTime, addBlacklist, removeBlacklist };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

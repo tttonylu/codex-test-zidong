@@ -20,6 +20,48 @@ class InstanceManager:
         self._instances[state.instance_id] = state
         return state
 
+    def get_instance(self, instance_id: str) -> InstanceState | None:
+        """Return one instance by identifier when present."""
+
+        return self._instances.get(instance_id)
+
+    def update_instance_identity(
+        self,
+        *,
+        instance_id: str,
+        handle: str | None,
+        remark: str | None,
+        profile_id: str | None = None,
+        runtime_status: str | None = None,
+    ) -> InstanceState:
+        """Update one instance after a confirmed account/login identity change."""
+
+        existing = self._instances.get(instance_id)
+        if existing is None:
+            updated = InstanceState(
+                instance_id=instance_id,
+                profile_id=profile_id or instance_id,
+                runtime_status=runtime_status or "running",
+                health_status="unknown",
+                handle=handle,
+                window_id=instance_id,
+                remark=remark,
+            )
+        else:
+            updated = InstanceState(
+                instance_id=existing.instance_id,
+                profile_id=profile_id or existing.profile_id,
+                runtime_status=runtime_status or existing.runtime_status,
+                health_status=existing.health_status,
+                handle=handle,
+                window_id=existing.window_id,
+                remark=remark,
+                last_synced_at=existing.last_synced_at,
+                metadata=dict(existing.metadata),
+            )
+        self._instances[instance_id] = updated
+        return updated
+
     def load_snapshot(self, states: Iterable[InstanceState]) -> list[InstanceState]:
         """Replace the full local instance set with a fresh scan result."""
 
@@ -36,6 +78,7 @@ class InstanceManager:
                 instance_id=state.instance_id,
                 profile_id=state.profile_id,
                 runtime_status=state.runtime_status,
+                health_status=state.health_status,
                 handle=state.handle,
                 window_id=state.window_id,
                 remark=state.remark,

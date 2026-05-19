@@ -16,7 +16,13 @@ def execute(context: WorkerContext) -> WorkerOutcome:
         raise ValueError("chat worker requires bitbrowser_client")
 
     target = str(context.task.parameters.get("target_handle", "unknown"))
-    target_url = f"https://x.com/messages/compose?recipient_id={target}"
+    action_name = str(context.metadata.get("action_name") or "chat")
+    if action_name == "icebreaker":
+        target_url = f"https://x.com/messages/compose?recipient_id={target}&mode=icebreaker"
+    elif action_name == "ad":
+        target_url = f"https://x.com/messages/compose?recipient_id={target}&mode=ad"
+    else:
+        target_url = f"https://x.com/messages/compose?recipient_id={target}"
     response = context.bitbrowser_client.open_browser(
         browser_id=browser_id,
         args=[target_url],
@@ -27,7 +33,7 @@ def execute(context: WorkerContext) -> WorkerOutcome:
     return WorkerOutcome(
         summary="chat executed",
         details={
-            "action": "chat",
+            "action": action_name,
             "target_handle": target,
             "target_url": target_url,
             "instance_id": browser_id,
@@ -39,7 +45,7 @@ def execute(context: WorkerContext) -> WorkerOutcome:
             {
                 "name": "open_browser",
                 "status": "completed",
-                "action": "chat",
+                "action": action_name,
                 "target_url": target_url,
             }
         ],

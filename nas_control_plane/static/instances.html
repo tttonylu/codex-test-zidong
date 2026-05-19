@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实例管理 - BPlus</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+            background: #f8fafc;
+            color: #1f2937;
+            line-height: 1.6;
+            padding: 24px;
+        }
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+        .page-header p { font-size: 14px; color: #6b7280; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; transition: all 0.2s; }
+        .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-color: #d1d5db; }
+        .stat-card .label { font-size: 13px; color: #6b7280; margin-bottom: 8px; font-weight: 500; }
+        .stat-card .value { font-size: 32px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+
+        .panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+        .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #f3f4f6; }
+        .panel-header h2 { font-size: 16px; font-weight: 600; color: #374151; }
+        .panel-header span { font-size: 13px; color: #9ca3af; }
+        .panel-body { padding: 20px; }
+        .panel-body.no-pad { padding: 0; }
+
+        .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+        .toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .toolbar-right { display: flex; align-items: center; gap: 12px; }
+
+        .table { width: 100%; border-collapse: collapse; }
+        .table th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; background: #f9fafb; white-space: nowrap; }
+        .table td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+        .table tr:last-child td { border-bottom: none; }
+        .table tr:hover td { background: #f9fafb; }
+
+        .agent-group-header { background: #f0f4ff; border-bottom: 1px solid #dbeafe; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .agent-group-header .agent-info { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; color: #1e40af; }
+        .agent-group-header .agent-info .count { background: #dbeafe; color: #1e40af; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; }
+        .agent-group-header .agent-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .row-logged-out td { color: #9ca3af; background: #fafafa; }
+        .row-logged-out:hover td { background: #f3f4f6; }
+
+        .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; gap: 6px; }
+        .badge.online { background: #d1fae5; color: #065f46; }
+        .badge.offline { background: #f3f4f6; color: #6b7280; }
+        .badge.error { background: #fee2e2; color: #991b1b; }
+        .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #e5e7eb; background: #fff; color: #374151; transition: all 0.15s; white-space: nowrap; }
+        .btn:hover { background: #f9fafb; border-color: #d1d5db; }
+        .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+        .btn.primary:hover { background: #1d4ed8; }
+        .btn.danger { background: #ef4444; border-color: #ef4444; color: #fff; }
+        .btn.danger:hover { background: #dc2626; }
+        .btn.success { background: #10b981; border-color: #10b981; color: #fff; }
+        .btn.success:hover { background: #059669; }
+        .btn.warning { background: #f59e0b; border-color: #f59e0b; color: #fff; }
+        .btn.warning:hover { background: #d97706; }
+        .btn.sm { padding: 5px 12px; font-size: 12px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .checkbox { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
+
+        .select-wrap { position: relative; }
+        .select-wrap select { appearance: none; padding: 8px 32px 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #374151; background: #fff; cursor: pointer; min-width: 120px; }
+        .select-wrap select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+        .search-input { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #374151; width: 200px; transition: all 0.15s; }
+        .search-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .search-input::placeholder { color: #9ca3af; }
+
+        .empty { text-align: center; padding: 40px; color: #9ca3af; font-size: 14px; }
+        .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: #6b7280; font-size: 14px; gap: 12px; }
+        .spinner { width: 20px; height: 20px; border: 2px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .data-cell { display: flex; gap: 8px; flex-wrap: wrap; }
+        .data-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+        .data-tag.added { background: #d1fae5; color: #065f46; }
+        .data-tag.ice { background: #dbeafe; color: #1e40af; }
+        .data-tag.ad { background: #fef3c7; color: #92400e; }
+        .data-tag.corpse { background: #f3f4f6; color: #6b7280; }
+        .data-tag.reject { background: #fee2e2; color: #991b1b; }
+
+        .mem-bar { width: 60px; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+        .mem-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+        .mem-bar-fill.low { background: #10b981; }
+        .mem-bar-fill.mid { background: #f59e0b; }
+        .mem-bar-fill.high { background: #ef4444; }
+        .mem-text { font-size: 12px; color: #6b7280; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+
+        .heartbeat { font-size: 12px; color: #6b7280; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+        .heartbeat.stale { color: #ef4444; }
+
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+        .toast { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-size: 14px; animation: slideIn 0.2s ease; min-width: 260px; max-width: 400px; }
+        .toast.success { border-left: 3px solid #10b981; }
+        .toast.error { border-left: 3px solid #ef4444; }
+        .toast.info { border-left: 3px solid #3b82f6; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } body { padding: 16px; } .toolbar { flex-direction: column; align-items: stretch; } .toolbar-left, .toolbar-right { width: 100%; } .search-input { width: 100%; } }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="page-header">
+            <h1>实例管理</h1>
+            <p>管理所有浏览器实例的运行状态、引擎控制和批量操作</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">在线实例</div>
+                <div class="value" style="color: #2563eb;">{{ onlineCount }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">离线实例</div>
+                <div class="value" style="color: #6b7280;">{{ offlineCount }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">错误实例</div>
+                <div class="value" style="color: #ef4444;">{{ errorCount }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">未登录</div>
+                <div class="value" style="color: #f59e0b;">{{ loggedOutCount }}</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h2>批量操作</h2>
+                <span>已选 {{ selectedCount }} 个实例</span>
+            </div>
+            <div class="panel-body">
+                <div class="btn-group">
+                    <button class="btn primary" @click="batchRestartSelected" :disabled="selectedCount === 0">批量重启已选 ({{ selectedCount }})</button>
+                    <button class="btn danger" @click="batchStopAll">全局停止</button>
+                    <button class="btn success" @click="batchStartBothAll">一键双开全部</button>
+                    <button class="btn warning" @click="batchAutoRunAll">全自动全部</button>
+                    <button class="btn" @click="openAllWindows">打开所有未登录窗口</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <div class="select-wrap">
+                    <select v-model="statusFilter">
+                        <option value="all">全部状态</option>
+                        <option value="online">在线</option>
+                        <option value="offline">离线</option>
+                    </select>
+                </div>
+                <div class="select-wrap">
+                    <select v-model="agentFilter">
+                        <option value="all">全部 Agent</option>
+                        <option v-for="a in agentList" :key="a" :value="a">{{ a }}</option>
+                    </select>
+                </div>
+                <input type="text" class="search-input" placeholder="搜索实例 ID / Handle ..." v-model="searchQuery" />
+            </div>
+            <div class="toolbar-right">
+                <span style="font-size:13px; color:#9ca3af;">
+                    {{ filteredProfiles.length }} 个已登录实例
+                    <template v-if="filteredLoggedOut.length"> · {{ filteredLoggedOut.length }} 个未登录</template>
+                </span>
+            </div>
+        </div>
+
+        <div v-if="loading" class="loading">
+            <div class="spinner"></div>
+            <span>正在加载实例数据...</span>
+        </div>
+
+        <template v-if="!loading">
+            <div class="panel" v-if="groupedProfiles.length > 0">
+                <div class="panel-header">
+                    <h2>已登录实例</h2>
+                    <span>按 Agent 分组展示</span>
+                </div>
+                <div class="panel-body no-pad">
+                    <template v-for="group in groupedProfiles" :key="group.agent_id">
+                        <div class="agent-group-header">
+                            <div class="agent-info">
+                                <span>Agent: {{ group.agent_id }}</span>
+                                <span class="count">{{ group.profiles.length }} 个实例</span>
+                            </div>
+                            <div class="agent-actions">
+                                <button class="btn sm primary" @click="batchByAgent(group.agent_id, 'start-follow')">全部关注</button>
+                                <button class="btn sm success" @click="batchByAgent(group.agent_id, 'start-chat')">全部私信</button>
+                                <button class="btn sm warning" @click="batchByAgent(group.agent_id, 'start-both')">全部双开</button>
+                                <button class="btn sm" @click="batchByAgent(group.agent_id, 'restart')">全部重启</button>
+                                <button class="btn sm danger" @click="batchByAgent(group.agent_id, 'stop-script')">全部停止</button>
+                            </div>
+                        </div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;"><input type="checkbox" class="checkbox" :checked="isAgentAllSelected(group.agent_id)" @change="toggleAgentSelect(group.agent_id, $event)" /></th>
+                                    <th>实例 ID</th>
+                                    <th>Handle</th>
+                                    <th>状态</th>
+                                    <th>今日数据</th>
+                                    <th>内存</th>
+                                    <th>最后心跳</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="p in group.profiles" :key="p.profile_id">
+                                    <td><input type="checkbox" class="checkbox" :checked="selectedSet.has(p.profile_id)" @change="toggleSelect(p.profile_id)" /></td>
+                                    <td><strong>{{ p.profile_id }}</strong><span v-if="p.engine" style="font-size:11px; color:#9ca3af; margin-left:6px;">[{{ p.engine }}]</span></td>
+                                    <td>{{ p.handle || p.screen_name || '--' }}</td>
+                                    <td><span class="badge" :class="getInstanceStatusClass(p)">{{ getInstanceStatusLabel(p) }}</span></td>
+                                    <td>
+                                        <div class="data-cell">
+                                            <span class="data-tag added" v-if="getData(p, 'added')">+{{ getData(p, 'added') }}</span>
+                                            <span class="data-tag ice" v-if="getData(p, 'ice')">冰{{ getData(p, 'ice') }}</span>
+                                            <span class="data-tag ad" v-if="getData(p, 'ad')">信{{ getData(p, 'ad') }}</span>
+                                            <span class="data-tag corpse" v-if="getData(p, 'corpse')">尸{{ getData(p, 'corpse') }}</span>
+                                            <span class="data-tag reject" v-if="getData(p, 'reject')">黑{{ getData(p, 'reject') }}</span>
+                                            <span v-if="!hasAnyData(p)" style="font-size:12px; color:#d1d5db;">--</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <template v-if="p.memory_mb != null">
+                                            <span class="mem-bar"><span class="mem-bar-fill" :class="getMemClass(p.memory_mb)" :style="{ width: Math.min(100, p.memory_mb / 5) + '%' }"></span></span>
+                                            <span class="mem-text">{{ p.memory_mb }}MB</span>
+                                        </template>
+                                        <span v-else style="font-size:12px; color:#d1d5db;">--</span>
+                                    </td>
+                                    <td><span class="heartbeat" :class="{ stale: isStale(p) }">{{ formatHeartbeat(p) }}</span></td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn sm primary" @click="doAction('start-follow', p)">关注</button>
+                                            <button class="btn sm success" @click="doAction('start-chat', p)">聊天</button>
+                                            <button class="btn sm" @click="doAction('restart', p)">重启</button>
+                                            <button class="btn sm danger" @click="doAction('stop-script', p)">停止</button>
+                                            <button class="btn sm warning" @click="doAction('start-both', p)">双开</button>
+                                            <button class="btn sm warning" @click="doAction('auto-run', p)">全自动</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </template>
+                </div>
+            </div>
+
+            <div class="panel" v-if="groupedProfiles.length === 0 && filteredLoggedOut.length === 0">
+                <div class="empty"><p>暂无实例数据</p><p style="font-size:12px; margin-top:8px;">请检查浏览器实例是否已启动或调整筛选条件</p></div>
+            </div>
+
+            <div class="panel" v-if="filteredLoggedOut.length > 0">
+                <div class="panel-header"><h2>未登录实例</h2><span>{{ filteredLoggedOut.length }} 个窗口</span></div>
+                <div class="panel-body no-pad">
+                    <table class="table">
+                        <thead><tr><th>实例 ID</th><th>Window ID</th><th>状态</th><th>最后心跳</th><th>操作</th></tr></thead>
+                        <tbody>
+                            <tr v-for="p in filteredLoggedOut" :key="p.profile_id" class="row-logged-out">
+                                <td><strong>{{ p.profile_id }}</strong></td>
+                                <td style="font-family: 'JetBrains Mono', monospace; font-size:13px;">{{ p.window_id || '--' }}</td>
+                                <td><span class="badge offline">未登录</span></td>
+                                <td><span class="heartbeat" :class="{ stale: isStale(p) }">{{ formatHeartbeat(p) }}</span></td>
+                                <td><button class="btn sm primary" @click="doAction('open-window', p)">打开窗口</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </template>
+
+        <div class="toast-container">
+            <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">{{ t.message }}</div>
+        </div>
+    </div>
+
+    <script>
+    const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+
+    createApp({
+        setup() {
+            const API_BASE = '';
+            const TOKEN = 'xm2026_a1b2c3d4e5';
+            const REFRESH_INTERVAL = 5000;
+            let timer = null;
+
+            const profiles = ref([]);
+            const loading = ref(true);
+            const toasts = ref([]);
+            const selectedSet = ref(new Set());
+            const statusFilter = ref('all');
+            const agentFilter = ref('all');
+            const searchQuery = ref('');
+
+            function toast(msg, type = 'info') {
+                const id = Date.now() + Math.random();
+                toasts.value.push({ id, message: msg, type });
+                setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 3000);
+            }
+
+            async function api(path, method = 'GET', body = null) {
+                try {
+                    const opts = { method, headers: { 'Content-Type': 'application/json', 'X-API-Token': TOKEN } };
+                    if (body) opts.body = JSON.stringify(body);
+                    const r = await fetch(API_BASE + path, opts);
+                    if (!r.ok) { toast('请求失败: ' + path + ' - HTTP ' + r.status, 'error'); return null; }
+                    return await r.json();
+                } catch (e) { console.error('[API Error]', path, e); toast('网络错误: ' + path, 'error'); return null; }
+            }
+
+            async function fetchData() {
+                try {
+                    const data = await api('/api/profiles');
+                    if (data) {
+                        const raw = Array.isArray(data) ? data : (data.profiles || []);
+                        profiles.value = raw.map(p => ({
+                            ...p,
+                            profile_id: p.profile_id || p.id || '',
+                            handle: p.handle || '',
+                            agent_id: p.agent_id || 'default',
+                            window_id: p.window_id || '',
+                            engine: p.engine || '',
+                            status: p.status || 'unknown',
+                            last_seen_ts: p.last_seen_ts || null,
+                            memory_mb: p.memory_mb != null ? p.memory_mb : null,
+                            logged_in: p.logged_in !== false,
+                            daily_stats: p.daily_stats || {}
+                        }));
+                    }
+                } catch (e) { console.error('[fetchData error]', e); }
+                finally { loading.value = false; }
+            }
+
+            function getInstanceStatus(p) {
+                if (p.status === 'error') return 'error';
+                const now = Date.now() / 1000;
+                if (p.last_seen_ts && (now - p.last_seen_ts) <= 60) return 'online';
+                if (p.status === 'online' || p.status === 'active') return 'online';
+                return 'offline';
+            }
+
+            function getInstanceStatusClass(p) {
+                const s = getInstanceStatus(p);
+                if (s === 'online') return 'online';
+                if (s === 'error') return 'error';
+                return 'offline';
+            }
+
+            function getInstanceStatusLabel(p) {
+                const s = getInstanceStatus(p);
+                if (s === 'online') return '在线';
+                if (s === 'error') return '错误';
+                return '离线';
+            }
+
+            function getData(p, key) {
+                const ds = p.daily_stats || {};
+                return ds[key] || 0;
+            }
+
+            function hasAnyData(p) {
+                return getData(p, 'added') || getData(p, 'ice') || getData(p, 'ad') || getData(p, 'corpse') || getData(p, 'reject');
+            }
+
+            function getMemClass(mb) {
+                if (mb >= 400) return 'high';
+                if (mb >= 200) return 'mid';
+                return 'low';
+            }
+
+            function isStale(p) {
+                if (!p.last_seen_ts) return false;
+                return (Date.now() / 1000 - p.last_seen_ts) > 120;
+            }
+
+            function formatHeartbeat(p) {
+                if (p.last_seen_ts) {
+                    const diff = Math.floor(Date.now() / 1000 - p.last_seen_ts);
+                    if (diff < 60) return `${diff}s ago`;
+                    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                    return `${Math.floor(diff / 86400)}d ago`;
+                }
+                return '--';
+            }
+
+            const loggedOutProfiles = computed(() => profiles.value.filter(p => p.logged_in === false));
+            const loggedInProfiles = computed(() => profiles.value.filter(p => p.logged_in !== false));
+
+            const filteredProfiles = computed(() => {
+                let list = loggedInProfiles.value;
+                if (statusFilter.value === 'online') list = list.filter(p => getInstanceStatus(p) === 'online');
+                else if (statusFilter.value === 'offline') list = list.filter(p => getInstanceStatus(p) !== 'online');
+                if (agentFilter.value !== 'all') list = list.filter(p => p.agent_id === agentFilter.value);
+                if (searchQuery.value.trim()) {
+                    const q = searchQuery.value.trim().toLowerCase();
+                    list = list.filter(p => (p.profile_id || '').toLowerCase().includes(q) || (p.handle || '').toLowerCase().includes(q));
+                }
+                return list;
+            });
+
+            const filteredLoggedOut = computed(() => {
+                let list = loggedOutProfiles.value;
+                if (agentFilter.value !== 'all') list = list.filter(p => p.agent_id === agentFilter.value);
+                if (searchQuery.value.trim()) {
+                    const q = searchQuery.value.trim().toLowerCase();
+                    list = list.filter(p => (p.profile_id || '').toLowerCase().includes(q));
+                }
+                return list;
+            });
+
+            const agentList = computed(() => {
+                const set = new Set();
+                profiles.value.forEach(p => { if (p.agent_id) set.add(p.agent_id); });
+                return Array.from(set).sort();
+            });
+
+            const groupedProfiles = computed(() => {
+                const map = {};
+                filteredProfiles.value.forEach(p => {
+                    const aid = p.agent_id || 'default';
+                    if (!map[aid]) map[aid] = { agent_id: aid, profiles: [] };
+                    map[aid].profiles.push(p);
+                });
+                return Object.values(map).sort((a, b) => a.agent_id.localeCompare(b.agent_id));
+            });
+
+            const onlineCount = computed(() => loggedInProfiles.value.filter(p => getInstanceStatus(p) === 'online').length);
+            const offlineCount = computed(() => loggedInProfiles.value.filter(p => getInstanceStatus(p) !== 'online').length);
+            const errorCount = computed(() => profiles.value.filter(p => p.status === 'error').length);
+            const loggedOutCount = computed(() => loggedOutProfiles.value.length);
+            const selectedCount = computed(() => selectedSet.value.size);
+
+            function toggleSelect(pid) {
+                const s = new Set(selectedSet.value);
+                if (s.has(pid)) s.delete(pid);
+                else s.add(pid);
+                selectedSet.value = s;
+            }
+
+            function isAgentAllSelected(agentId) {
+                const group = groupedProfiles.value.find(g => g.agent_id === agentId);
+                if (!group || group.profiles.length === 0) return false;
+                return group.profiles.every(p => selectedSet.value.has(p.profile_id));
+            }
+
+            function toggleAgentSelect(agentId, event) {
+                const group = groupedProfiles.value.find(g => g.agent_id === agentId);
+                if (!group) return;
+                const s = new Set(selectedSet.value);
+                if (event.target.checked) group.profiles.forEach(p => s.add(p.profile_id));
+                else group.profiles.forEach(p => s.delete(p.profile_id));
+                selectedSet.value = s;
+            }
+
+            async function doAction(action, p) {
+                const pid = p.profile_id;
+                toast(`正在执行 ${actionLabel(action)} → ${pid}...`, 'info');
+                try {
+                    const endpointMap = {
+                        'start-follow': '/api/actions/start-follow',
+                        'start-chat': '/api/actions/start-chat',
+                        'stop-script': '/api/actions/stop-script',
+                        'restart': '/api/actions/restart',
+                        'open-window': '/api/actions/open-window',
+                        'start-both': '/api/actions/start-both',
+                        'auto-run': '/api/actions/auto-run'
+                    };
+                    const endpoint = endpointMap[action];
+                    if (!endpoint) { toast('未知操作', 'error'); return; }
+                    const res = await api(endpoint, 'POST', { profile_id: pid });
+                    if (res && res.ok !== false) toast(`${actionLabel(action)} 已发送 → ${pid}`, 'success');
+                    else toast(`${actionLabel(action)} 失败`, 'error');
+                } catch (e) { toast(`操作失败: ${e.message}`, 'error'); }
+            }
+
+            async function batchByAgent(agentId, action) {
+                toast(`正在对 Agent [${agentId}] 执行 ${actionLabel(action)}...`, 'info');
+                try {
+                    const res = await api('/api/actions/batch', 'POST', { action: action, agent_id: agentId });
+                    if (res && res.ok !== false) toast(`Agent [${agentId}] ${actionLabel(action)} 已发送`, 'success');
+                    else toast(`批量操作失败`, 'error');
+                } catch (e) { toast(`批量操作失败: ${e.message}`, 'error'); }
+            }
+
+            async function batchRestartSelected() {
+                const ids = Array.from(selectedSet.value);
+                if (ids.length === 0) return;
+                toast(`正在批量重启 ${ids.length} 个实例...`, 'info');
+                try {
+                    const res = await api('/api/actions/batch', 'POST', { action: 'restart', profile_ids: ids });
+                    if (res && res.ok !== false) { toast(`已发送重启指令给 ${ids.length} 个实例`, 'success'); selectedSet.value = new Set(); }
+                    else toast(`批量重启失败`, 'error');
+                } catch (e) { toast(`批量重启失败: ${e.message}`, 'error'); }
+            }
+
+            async function batchStopAll() {
+                if (!confirm('确定要全局停止所有实例的脚本吗？')) return;
+                toast('正在全局停止...', 'info');
+                try {
+                    const res = await api('/api/actions/batch', 'POST', { action: 'stop' });
+                    if (res && res.ok !== false) toast('全局停止指令已发送', 'success');
+                    else toast(`全局停止失败`, 'error');
+                } catch (e) { toast(`全局停止失败: ${e.message}`, 'error'); }
+            }
+
+            async function batchStartBothAll() {
+                toast('正在一键双开全部...', 'info');
+                try {
+                    const res = await api('/api/actions/batch', 'POST', { action: 'start-both' });
+                    if (res && res.ok !== false) toast('一键双开指令已发送', 'success');
+                    else toast(`双开失败`, 'error');
+                } catch (e) { toast(`双开失败: ${e.message}`, 'error'); }
+            }
+
+            async function batchAutoRunAll() {
+                toast('正在全自动全部...', 'info');
+                try {
+                    const res = await api('/api/actions/batch', 'POST', { action: 'auto-run' });
+                    if (res && res.ok !== false) toast('全自动指令已发送', 'success');
+                    else toast(`全自动失败`, 'error');
+                } catch (e) { toast(`全自动失败: ${e.message}`, 'error'); }
+            }
+
+            async function openAllWindows() {
+                const windows = filteredLoggedOut.value;
+                if (windows.length === 0) { toast('没有需要打开的未登录窗口', 'info'); return; }
+                toast(`正在打开 ${windows.length} 个窗口...`, 'info');
+                let success = 0;
+                for (const p of windows) {
+                    try {
+                        const res = await api('/api/actions/open-window', 'POST', { profile_id: p.profile_id });
+                        if (res && res.ok !== false) success++;
+                    } catch (e) { /* continue */ }
+                }
+                toast(`已打开 ${success}/${windows.length} 个窗口`, success > 0 ? 'success' : 'error');
+            }
+
+            function actionLabel(action) {
+                const labels = { 'start-follow': '关注', 'start-chat': '私信', 'stop-script': '停止', 'restart': '重启', 'open-window': '打开窗口', 'start-both': '一键双开', 'auto-run': '全自动', 'stop': '全局停止' };
+                return labels[action] || action;
+            }
+
+            onMounted(() => { fetchData(); timer = setInterval(fetchData, REFRESH_INTERVAL); });
+            onUnmounted(() => { if (timer) { clearInterval(timer); timer = null; } });
+
+            return {
+                profiles, loading, toasts, selectedSet, statusFilter, agentFilter, searchQuery,
+                filteredProfiles, filteredLoggedOut, groupedProfiles, agentList,
+                onlineCount, offlineCount, errorCount, loggedOutCount, selectedCount,
+                getInstanceStatus, getInstanceStatusClass, getInstanceStatusLabel,
+                getData, hasAnyData, getMemClass, isStale, formatHeartbeat,
+                toggleSelect, isAgentAllSelected, toggleAgentSelect,
+                doAction, batchByAgent,
+                batchRestartSelected, batchStopAll, batchStartBothAll, batchAutoRunAll, openAllWindows,
+                toast
+            };
+        }
+    }).mount('#app');
+    </script>
+</body>
+</html>

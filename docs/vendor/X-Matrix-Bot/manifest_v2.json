@@ -1,0 +1,41 @@
+{
+  "manifest_version": 2,
+  "name": "X-Matrix-Bot",
+  "version": "11.5.6",
+  "description": "V11.5.5 NAS配置化+比特浏览器主动注入+连通性诊断版 | 改:config.js统一配置,BG主动注入,UI增加NAS设置+状态灯",
+  "permissions": [
+    "storage",
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "http://192.168.0.100/*",
+    "*://*.twitter.com/*",
+    "*://*.x.com/*",
+    "*://*.twimg.com/*",
+    "*://api.vxtwitter.com/*"
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.x.com/*",
+        "*://*.twitter.com/*"
+      ],
+      "js": [
+        "config.js",
+        "content_id_extractor.js",
+        "content_follow.js",
+        "content_chat.js",
+        "content_repost.js"
+      ]
+    }
+  ]
+}

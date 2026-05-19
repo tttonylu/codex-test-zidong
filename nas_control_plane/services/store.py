@@ -51,6 +51,15 @@ class JsonStateStore:
             "terminals": {},
             "instances": {},
             "tasks": {},
+            "queue_deliveries": {},
+            "creator_inbox": {},
+            "ammo_targets": {},
+            "account_inventory": {},
+            "plugin_campaigns": {},
+            "plugin_auto_dispatch_rules": {},
+            "daily_action_stats": {},
+            "blacklist": {},
+            "audit_logs": {},
             "logs": [],
         }
 

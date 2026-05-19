@@ -135,7 +135,7 @@ def main() -> None:
             bitbrowser_client=BitBrowserClient("http://127.0.0.1:15437"),
             sleep_fn=lambda _: None,
         )
-        cycle = loop.run(cycles=1, interval_seconds=0)
+        cycle = loop.run(cycles=2, interval_seconds=0)
         tasks = nas_client.list_tasks("terminal-exec-01")
         logs = nas_client.list_logs()
 
@@ -159,6 +159,7 @@ def main() -> None:
             )
         )
     finally:
+        loop.shutdown()
         bitbrowser.shutdown()
         nas.shutdown()
         bitbrowser.server_close()

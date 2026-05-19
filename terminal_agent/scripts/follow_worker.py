@@ -16,6 +16,7 @@ def execute(context: WorkerContext) -> WorkerOutcome:
         raise ValueError("follow worker requires bitbrowser_client")
 
     target = str(context.task.parameters.get("target_handle", "unknown"))
+    action_name = str(context.metadata.get("action_name") or "follow")
     target_url = f"https://x.com/{target}"
     response = context.bitbrowser_client.open_browser(
         browser_id=browser_id,
@@ -27,7 +28,7 @@ def execute(context: WorkerContext) -> WorkerOutcome:
     return WorkerOutcome(
         summary="follow executed",
         details={
-            "action": "follow",
+            "action": action_name,
             "target_handle": target,
             "target_url": target_url,
             "instance_id": browser_id,
@@ -39,7 +40,7 @@ def execute(context: WorkerContext) -> WorkerOutcome:
             {
                 "name": "open_browser",
                 "status": "completed",
-                "action": "follow",
+                "action": action_name,
                 "target_url": target_url,
             }
         ],

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>弹药库 - BPlus</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f7fa;
+  color: #1e293b;
+  min-height: 100vh;
+  padding: 24px;
+}
+.page-header { margin-bottom: 24px; }
+.page-header h1 { font-size: 24px; font-weight: 700; color: #0f172a; }
+.page-header p { font-size: 14px; color: #64748b; margin-top: 4px; }
+.panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.panel-header h2 { font-size: 16px; font-weight: 600; color: #0f172a; }
+.panel-body { padding: 20px; }
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #334155;
+  border-bottom: 1px solid #f8fafc;
+}
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: #f8fafc; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  transition: all 0.15s;
+}
+.btn:hover { border-color: #cbd5e1; background: #f8fafc; }
+.btn.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.btn.primary:hover { background: #1d4ed8; }
+.btn.primary:disabled { background: #93c5fd; border-color: #93c5fd; cursor: not-allowed; }
+.btn.danger { background: #dc2626; color: #fff; border-color: #dc2626; }
+.btn.danger:hover { background: #b91c1c; }
+.btn.sm { padding: 5px 12px; font-size: 12px; }
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+.textarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  color: #334155;
+  background: #fafbfc;
+  resize: vertical;
+  line-height: 1.6;
+  transition: border-color 0.15s;
+}
+.textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+.stats-bar { display: flex; gap: 16px; margin-bottom: 20px; }
+.stat-card {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+.stat-card .num { font-size: 28px; font-weight: 700; color: #0f172a; }
+.stat-card .label { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.stat-card.blue .num { color: #2563eb; }
+.stat-card.green .num { color: #16a34a; }
+.stat-card.orange .num { color: #ea580c; }
+.empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: #1e293b;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: slideIn 0.3s ease;
+}
+.toast.error { background: #dc2626; }
+.toast.success { background: #16a34a; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.import-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #94a3b8; }
+.progress-bar { width: 100%; height: 6px; background: #f1f5f9; border-radius: 3px; margin-top: 12px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 3px; transition: width 0.4s ease; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+.badge.pending  { background: #f1f5f9; color: #64748b; }
+.badge.assigned { background: #dbeafe; color: #1d4ed8; }
+.badge.consumed { background: #dcfce7; color: #16a34a; }
+.search-input { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; width: 200px; transition: all 0.15s; }
+.search-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .stats-bar { flex-direction: column; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="toast-container">
+    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">{{ t.message }}</div>
+  </div>
+
+  <div class="page-header">
+    <h1>弹药库</h1>
+    <p>管理待关注的目标账号列表</p>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card blue">
+      <div class="num">{{ summary.available }}</div>
+      <div class="label">剩余弹药</div>
+    </div>
+    <div class="stat-card green">
+      <div class="num">{{ summary.consumed }}</div>
+      <div class="label">已消耗</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="num">{{ summary.total }}</div>
+      <div class="label">总量</div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:20px" v-if="summary.total > 0">
+    <div class="panel-body">
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:#64748b;margin-bottom:6px">
+        <span>消耗进度</span>
+        <span>{{ summary.total > 0 ? Math.round(summary.consumed / summary.total * 100) : 0 }}%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" :style="{ width: (summary.total > 0 ? summary.consumed / summary.total * 100 : 0) + '%' }"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header"><h2>导入目标</h2></div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label class="form-label">目标列表（每行一个用户名或 ID）</label>
+          <textarea class="textarea" v-model="importText" placeholder="elonmusk&#10;username2&#10;1234567890&#10;..." :disabled="importing"></textarea>
+          <div class="import-meta">
+            <span>{{ lineCount }} 个目标待导入</span>
+            <span v-if="importing">导入中 {{ importProgress }}/{{ lineCount }}...</span>
+          </div>
+        </div>
+        <button class="btn primary" @click="doImport" :disabled="!importText.trim() || importing">
+          <span v-if="importing">导入中...</span>
+          <span v-else>开始导入</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>弹药列表</h2>
+        <input class="search-input" v-model="searchQuery" placeholder="搜索目标..." />
+      </div>
+      <div class="panel-body" style="padding:0">
+        <div v-if="loading" style="display:flex;align-items:center;justify-content:center;padding:48px;color:#94a3b8;gap:12px">
+          <div class="spinner" style="width:20px;height:20px;border:2px solid #e5e7eb;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block"></div>
+          <span>加载中...</span>
+        </div>
+        <table class="table" v-else-if="filteredItems.length">
+          <thead>
+            <tr><th>目标</th><th>状态</th><th>来源</th><th>添加时间</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in filteredItems" :key="item.target_id">
+              <td style="font-family:monospace">{{ item.target_value }}</td>
+              <td><span class="badge" :class="item.status">{{ statusLabel(item.status) }}</span></td>
+              <td style="font-size:12px;color:#94a3b8">{{ item.source }}</td>
+              <td style="font-size:12px;color:#94a3b8">{{ formatTime(item.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="empty" v-else>
+          <p>{{ searchQuery ? '未找到匹配的目标' : '暂无弹药数据' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = '';
+const TOKEN = 'xm2026_a1b2c3d4e5';
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const importText = ref('');
+    const importing = ref(false);
+    const importProgress = ref(0);
+    const loading = ref(false);
+    const summary = ref({ total: 0, available: 0, assigned: 0, consumed: 0 });
+    const items = ref([]);
+    const searchQuery = ref('');
+    const toasts = ref([]);
+
+    const total = computed(() => summary.value.total);
+    const lineCount = computed(() => importText.value.split('\n').filter(l => l.trim()).length);
+    const filteredItems = computed(() => {
+      if (!searchQuery.value.trim()) return items.value;
+      const q = searchQuery.value.toLowerCase();
+      return items.value.filter(i => (i.target_value || '').toLowerCase().includes(q) || (i.target_id || '').toLowerCase().includes(q));
+    });
+
+    function toast(msg, type = '') {
+      const id = Date.now();
+      toasts.value.push({ id, message: msg, type });
+      setTimeout(() => toasts.value = toasts.value.filter(t => t.id !== id), 3000);
+    }
+
+    function statusLabel(s) {
+      return { available: '待命中', assigned: '已分配', consumed: '已消耗' }[s] || s;
+    }
+
+    function formatTime(t) {
+      if (!t) return '-';
+      try {
+        const d = new Date(t);
+        if (isNaN(d.getTime())) return t;
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } catch { return t; }
+    }
+
+    async function fetchAmmo() {
+      loading.value = true;
+      try {
+        const res = await fetch(`${API_BASE}/plugin/ammo`, { headers: { 'X-API-Token': TOKEN } });
+        if (!res.ok) { toast('获取弹药数据失败', 'error'); return; }
+        const data = await res.json();
+        items.value = data.items || [];
+        summary.value = data.summary || { total: 0, available: 0, assigned: 0, consumed: 0 };
+      } catch (e) { toast('网络错误', 'error'); console.error('[Ammo] fetch error:', e); }
+      finally { loading.value = false; }
+    }
+
+    async function doImport() {
+      const lines = importText.value.split('\n').map(l => l.trim()).filter(Boolean);
+      if (!lines.length) return;
+      importing.value = true;
+      importProgress.value = 0;
+      let success = 0, fail = 0;
+      for (const line of lines) {
+        try {
+          const res = await fetch(`${API_BASE}/plugin/ammo/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Token': TOKEN },
+            body: JSON.stringify({ target_value: line, target_type: 'handle', source: 'manual' })
+          });
+          if (res.ok) success++; else fail++;
+        } catch { fail++; }
+        importProgress.value++;
+      }
+      importing.value = false;
+      importText.value = '';
+      toast(`导入完成：成功 ${success}，失败 ${fail}`, fail > 0 ? (success > 0 ? '' : 'error') : 'success');
+      fetchAmmo();
+    }
+
+    onMounted(() => { fetchAmmo(); });
+
+    return { importText, importing, importProgress, summary, items, searchQuery, toasts, total, lineCount, filteredItems, statusLabel, formatTime, doImport };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

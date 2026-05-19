@@ -1,10 +1,12 @@
-"""Minimal runtime-facing models for the terminal agent."""
+"""Runtime-facing models for the terminal agent."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
+
+from shared.protocol import ScriptRunPayload, TaskAssignmentPayload
 
 
 @dataclass(slots=True)
@@ -29,6 +31,7 @@ class InstanceState:
     instance_id: str
     profile_id: str
     runtime_status: str
+    health_status: str = "unknown"
     handle: str | None = None
     window_id: str | None = None
     remark: str | None = None
@@ -54,11 +57,17 @@ class LocalTask:
 
 @dataclass(slots=True)
 class ScriptSlot:
-    """Represents one executable slot or worker assignment on the terminal."""
+    """Represents one executable worker slot on the terminal."""
 
     slot_id: str
-    script_name: str
     status: str
+    script_name: str | None = None
     bound_instance_id: str | None = None
     run_id: str | None = None
+    task_id: str | None = None
+    assignment: TaskAssignmentPayload | None = None
+    run: ScriptRunPayload | None = None
+    assigned_at: datetime | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)

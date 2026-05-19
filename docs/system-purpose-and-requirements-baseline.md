@@ -118,7 +118,9 @@
 - `dispatched`
 - `running`
 - `completed`
-- `retry_pending`
+- `retry_pending`（兼容别名）
+- `manual_retry_pending`
+- `terminal_recovery_pending`
 - `retryable_failure`
 - `terminal_failure`
 - `cancelled`
@@ -145,9 +147,12 @@
 ### 8.3 重试必须有明确边界
 
 - 可重试失败进入 `retryable_failure`
-- 进入重试队列后使用 `retry_pending`
+- 进入人工重试队列后使用 `manual_retry_pending`
+- 终端重启恢复回收后使用 `terminal_recovery_pending`
+- 兼容历史状态读取与查询时保留 `retry_pending` 作为别名
 - 超出 retry 上限后进入 `terminal_failure`
 - 被阻止的重试必须记录 `retry_blocked_reason`
+- 已到可领取时间但因 terminal 槽位不足未被领取时，应保留真实等待原因，例如 `slot_capacity_reached`，而不是误记为 `retry_not_ready`
 
 ### 8.4 取消必须有明确边界
 
@@ -190,6 +195,12 @@
 - 多任务执行顺序与执行槽位控制
 - 更细的结果归档与审计
 - 更强的运营与查询视图
+
+当前主线已经进入其中的“更真实的 terminal 调度策略 / 多任务执行顺序与执行槽位控制”，重点是：
+
+- terminal 真并发 worker / slot 对象模型
+- slot 亲和性与恢复后重新派发
+- NAS 侧恢复任务优先级与查询面联动
 
 ## 12. 一句话约束
 

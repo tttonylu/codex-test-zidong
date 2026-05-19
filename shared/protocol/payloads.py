@@ -76,6 +76,40 @@ class TaskAssignmentPayload:
     close_after_actions: bool = False
     requested_by: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    dispatch_mode: str = "claim_http"
+    queue_topic: str | None = None
+    delivery_id: str | None = None
+    claim_lease_id: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-serializable representation of the payload."""
+
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class PluginDispatchRequestPayload:
+    """Plugin-facing request to turn one business dispatch into a NAS task."""
+
+    task_id: str
+    account_id: str
+    plugin_name: str
+    script_name: str
+    target: dict[str, Any] = field(default_factory=dict)
+    action_plan: list[dict[str, Any]] = field(default_factory=list)
+    campaign_id: str | None = None
+    copy_payload: dict[str, Any] | None = None
+    target_type: str = "handle"
+    terminal_id: str | None = None
+    instance_id: str | None = None
+    priority: int = 0
+    retry_limit: int = 0
+    close_after_actions: bool = False
+    requested_by: str | None = None
+    dispatch_mode: str = "claim_http"
+    queue_topic: str | None = None
+    parameters: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation of the payload."""
@@ -126,6 +160,8 @@ class ActionResultPayload:
     final: bool | None = None
     details: dict[str, Any] = field(default_factory=dict)
     emitted_at: datetime = field(default_factory=datetime.utcnow)
+    delivery_id: str | None = None
+    claim_lease_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation of the payload."""
@@ -133,3 +169,26 @@ class ActionResultPayload:
         data = asdict(self)
         data["emitted_at"] = self.emitted_at.isoformat()
         return data
+
+
+@dataclass(slots=True)
+class PluginTaskPullResponsePayload:
+    """Business task payload returned to the plugin runtime."""
+
+    task_id: str
+    account_id: str
+    plugin_name: str
+    script_name: str
+    target: dict[str, Any] = field(default_factory=dict)
+    action_plan: list[dict[str, Any]] = field(default_factory=list)
+    campaign_id: str | None = None
+    copy_payload: dict[str, Any] | None = None
+    terminal_id: str | None = None
+    instance_id: str | None = None
+    status: str = "queued"
+    parameters: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-serializable representation of the payload."""
+
+        return asdict(self)

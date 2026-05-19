@@ -1,0 +1,58 @@
+﻿{
+  "manifest_version": 3,
+  "name": "X-Matrix-Bot",
+  "version": "11.12.8",
+  "description": "V11.12.8 | 轮询自启+页面就绪检测+tab角色隔离，close后再开双标签页",
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
+    "default_title": "X-Matrix 状态检查"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "scripting",
+    "tabs",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "http://192.168.0.100/*",
+    "*://*.twitter.com/*",
+    "*://*.x.com/*",
+    "*://*.twimg.com/*",
+    "*://api.vxtwitter.com/*"
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.x.com/*",
+        "*://*.twitter.com/*"
+      ],
+      "js": [
+        "config.js",
+        "content_id_extractor.js",
+        "content_follow.js",
+        "content_chat.js",
+        "content_repost.js",
+        "float_button.js"
+      ]
+    }
+  ]
+}

@@ -48,6 +48,63 @@ class BitBrowserClient:
 
         return states
 
+    def resolve_browser_id(self, identifier: str | None, *, allow_single_running_fallback: bool = False) -> str:
+        """Resolve a BitBrowser browser identifier from true id or visible sequence number."""
+
+        normalized = str(identifier or "").strip()
+        if normalized:
+            browser = self.find_browser(normalized)
+            if browser is not None:
+                return str(browser["id"])
+            return normalized
+
+        if allow_single_running_fallback:
+            running = self.list_running_browsers()
+            if len(running) == 1:
+                return str(running[0]["id"])
+        raise RuntimeError("BitBrowser browser id is missing")
+
+    def find_browser(self, identifier: str) -> dict[str, Any] | None:
+        """Find one browser by true id or sequence number."""
+
+        target = str(identifier).strip()
+        if not target:
+            return None
+        for item in self._iter_browser_items():
+            if str(item.get("id")) == target:
+                return item
+            if str(item.get("seq")) == target:
+                return item
+        return None
+
+    def list_running_browsers(self) -> list[dict[str, Any]]:
+        """Return currently running BitBrowser records."""
+
+        return [item for item in self._iter_browser_items() if item.get("status") == 1]
+
+    def get_browser_pids(self, browser_ids: list[str]) -> dict[str, int]:
+        """Batch query OS process IDs for browser instance ids."""
+        if not browser_ids:
+            return {}
+
+        response = self._post_json("/browser/pids", {"ids": browser_ids})
+        if not isinstance(response, dict):
+            return {}
+
+        data = response.get("data")
+        if not isinstance(data, dict):
+            return {}
+
+        result: dict[str, int] = {}
+        for browser_id, raw_pid in data.items():
+            try:
+                pid = int(raw_pid)
+                if pid > 0:
+                    result[str(browser_id)] = pid
+            except (ValueError, TypeError):
+                pass
+        return result
+
     def open_browser(self, browser_id: str, args: list[str] | None = None, queue: bool = True) -> dict[str, Any]:
         """Open one BitBrowser window."""
 
@@ -79,6 +136,27 @@ class BitBrowserClient:
             raise RuntimeError(f"BitBrowser remark update failed: {response.get('msg', 'unknown error')}")
         return response
 
+    def update_window_name(self, browser_id: str, name: str) -> dict[str, Any]:
+        """Update one BitBrowser visible window name."""
+
+        payload = {"id": browser_id, "name": name}
+        payload.update(self._browser_update_context(browser_id))
+        response = self._post_json("/browser/update", payload)
+        if not response.get("success", False):
+            raise RuntimeError(f"BitBrowser name update failed: {response.get('msg', 'unknown error')}")
+        return response
+
+    def browser_detail(self, browser_id: str) -> dict[str, Any]:
+        """Fetch one BitBrowser window detail payload."""
+
+        response = self._post_json("/browser/detail", {"id": browser_id})
+        if not response.get("success", False):
+            raise RuntimeError(f"BitBrowser detail failed: {response.get('msg', 'unknown error')}")
+        data = response.get("data")
+        if not isinstance(data, dict):
+            raise RuntimeError("BitBrowser detail did not return an object")
+        return data
+
     def _post_json(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         body = json.dumps(payload).encode("utf-8")
         req = request.Request(
@@ -100,6 +178,44 @@ class BitBrowserClient:
             return {}
         return json.loads(raw.decode("utf-8"))
 
+    def _iter_browser_items(self, page_size: int = 100, max_pages: int = 10):
+        for page in range(max_pages):
+            items = self.list_browsers(page=page, page_size=page_size)
+            if not items:
+                break
+            for item in items:
+                yield item
+            if len(items) < page_size:
+                break
+
+    def _browser_update_context(self, browser_id: str) -> dict[str, Any]:
+        """Build the extra fields some BitBrowser versions require for /browser/update."""
+
+        try:
+            detail = self.browser_detail(browser_id)
+        except RuntimeError:
+            return {}
+        context: dict[str, Any] = {}
+
+        fingerprint = detail.get("browserFingerPrint")
+        if not fingerprint:
+            for key, value in detail.items():
+                if "finger" in str(key).lower():
+                    fingerprint = value
+                    break
+        if fingerprint:
+            context["browserFingerPrint"] = fingerprint
+
+        proxy_method = detail.get("proxyMethod")
+        if proxy_method is not None:
+            context["proxyMethod"] = proxy_method
+
+        proxy_type = detail.get("proxyType")
+        if proxy_type is not None:
+            context["proxyType"] = proxy_type
+
+        return context
+
     def _browser_to_instance_state(self, item: dict[str, Any]) -> InstanceState:
         browser_id = str(item["id"])
         handle = _normalize_handle(item.get("remark"))
@@ -109,6 +225,7 @@ class BitBrowserClient:
             instance_id=browser_id,
             profile_id=profile_id,
             runtime_status=_map_browser_status(item.get("status")),
+            health_status="unknown",
             handle=handle,
             window_id=browser_id,
             remark=item.get("remark"),

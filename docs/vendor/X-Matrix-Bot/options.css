@@ -1,0 +1,343 @@
+/* X-Matrix 诊断工具样式 */
+
+:root {
+    --bg: #0f1419;
+    --card: #1c2732;
+    --border: #38444d;
+    --blue: #1d9bf0;
+    --green: #00ba7c;
+    --red: #f91880;
+    --orange: #ffd700;
+    --gray: #8899a6;
+    --text: #e7e9ea;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+    font-size: 24px;
+    color: var(--blue);
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    color: var(--gray);
+    font-size: 14px;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.card h2 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: var(--text);
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.input-group label {
+    min-width: 80px;
+    color: var(--gray);
+    font-size: 14px;
+}
+
+.input-group input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+}
+
+.input-group input:focus {
+    border-color: var(--blue);
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--blue);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #1a8cd8;
+}
+
+.btn-secondary {
+    background: var(--border);
+    color: var(--text);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #4a5568;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--blue);
+    padding: 0;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.btn-link:hover {
+    color: #1a8cd8;
+}
+
+.result {
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-top: 10px;
+    display: none;
+}
+
+.result.success {
+    display: block;
+    background: rgba(0, 186, 124, 0.1);
+    border: 1px solid var(--green);
+    color: var(--green);
+}
+
+.result.error {
+    display: block;
+    background: rgba(249, 24, 128, 0.1);
+    border: 1px solid var(--red);
+    color: var(--red);
+}
+
+.result.warning {
+    display: block;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid var(--orange);
+    color: var(--orange);
+}
+
+.result.info {
+    display: block;
+    background: rgba(29, 155, 240, 0.1);
+    border: 1px solid var(--blue);
+    color: var(--blue);
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.status-item {
+    background: var(--bg);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.status-item .label {
+    display: block;
+    color: var(--gray);
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.status-item .value {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    word-break: break-all;
+}
+
+.message-log {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.message-log .log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.message-log .log-entry:last-child {
+    border-bottom: none;
+}
+
+.message-log .time {
+    color: var(--gray);
+    margin-right: 8px;
+}
+
+.message-log .data {
+    color: var(--green);
+}
+
+.message-log .error {
+    color: var(--red);
+}
+
+.log-viewer {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 10px;
+    height: 300px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.log-viewer .log-line {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(56, 68, 77, 0.3);
+}
+
+.log-viewer .log-line:nth-child(even) {
+    background: rgba(28, 39, 50, 0.3);
+}
+
+.log-viewer .log-time {
+    color: var(--gray);
+    margin-right: 8px;
+}
+
+.log-viewer .log-level-info {
+    color: var(--blue);
+}
+
+.log-viewer .log-level-warn {
+    color: var(--orange);
+}
+
+.log-viewer .log-level-error {
+    color: var(--red);
+}
+
+.log-viewer .log-level-success {
+    color: var(--green);
+}
+
+.report-area {
+    width: 100%;
+    min-height: 200px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px;
+    border-radius: 6px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    resize: vertical;
+    margin-top: 10px;
+}
+
+footer {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--gray);
+    font-size: 14px;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gray);
+}
+
+/* 动画 */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.loading {
+    animation: pulse 1.5s infinite;
+}

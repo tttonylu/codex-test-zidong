@@ -3,8 +3,9 @@
 ## Target
 
 - NAS target: 飞牛 OS / fnOS
-- Deployment mode: 图形化 Docker / Compose
+- Deployment mode: SSH into fnOS, then deploy with Docker / Compose
 - Isolation rule: use a dedicated project name and dedicated container name so this control plane does not mix with any other NAS containers
+- Deployment workspace: `/vol2/1000/codex`
 
 ## Identity
 
@@ -19,16 +20,19 @@
 
 ## First deployment
 
-1. Copy `.env.example` to `.env`
-2. Ensure the `data/` directory exists beside `docker-compose.yml`
-3. In 飞牛 OS Docker UI, import this compose project from `deploy/nas-control-plane/docker-compose.yml`
-4. Confirm the container name is still `codex-matrix-bplus-nas-control`
-5. Start the stack and verify `/healthz`
-6. Then perform one real write-path smoke check:
+1. SSH into the fnOS host
+2. Create or reuse `/vol2/1000/codex`
+3. Copy this deployment bundle into that directory
+4. Copy `.env.example` to `.env`
+5. Ensure the `data/` directory exists beside `docker-compose.yml`
+6. Start the stack from that directory
+7. Confirm the container name is still `codex-matrix-bplus-nas-control`
+8. Verify `/healthz`
+9. Then perform one real write-path smoke check:
    - register one terminal
    - create one task
    - confirm the mounted state file is updated
-7. Run the container-level smoke:
+10. Run the container-level smoke:
    - `python deploy/nas-control-plane/verify_container_smoke.py`
    - this will run `docker compose up -d --build` against the same compose project and container name
    - it does not automatically `down` the stack after the check
@@ -37,7 +41,7 @@
 
 Do not rely on restart alone when compose fields changed.
 
-Use a recreate flow in the Docker UI so environment, mounts, and image changes are actually applied.
+Use a recreate flow if compose fields changed. For the final fnOS setup, prefer SSH-driven deployment over the Docker UI.
 
 ## Design constraints
 

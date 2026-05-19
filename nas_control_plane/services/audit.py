@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from typing import Any
+
 from nas_control_plane.models import ActionLogRecord
 from nas_control_plane.services.repositories import AuditLogRepository
 from shared.protocol import ActionResultPayload
@@ -31,6 +34,33 @@ class AuditService:
                 **payload.details,
                 "result_status": payload.status,
             },
+        )
+        self._logs.append(record)
+        self._save_state()
+        return record
+
+    def record(
+        self,
+        *,
+        terminal_id: str,
+        level: str,
+        message: str,
+        task_id: str | None = None,
+        run_id: str | None = None,
+        details: dict[str, Any] | None = None,
+        emitted_at: datetime | None = None,
+    ) -> ActionLogRecord:
+        """Append a generic audit log entry."""
+
+        record = ActionLogRecord(
+            log_id=f"log-{len(self._logs) + 1}",
+            terminal_id=terminal_id,
+            level=level,
+            message=message,
+            emitted_at=emitted_at or datetime.now(UTC),
+            task_id=task_id,
+            run_id=run_id,
+            details=dict(details or {}),
         )
         self._logs.append(record)
         self._save_state()

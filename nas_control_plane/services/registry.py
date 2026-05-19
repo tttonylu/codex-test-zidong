@@ -51,6 +51,7 @@ class TerminalRegistryService:
         """Update last-seen and capacity values from a heartbeat payload."""
 
         record = self._require_terminal(payload.terminal_id)
+        recovered_task_ids = list(payload.metadata.get("recovered_task_ids", []))
         record = replace(
             record,
             status=payload.status,
@@ -62,6 +63,7 @@ class TerminalRegistryService:
                 "active_task_count": payload.metadata.get("active_task_count", 0),
                 "blocked_instance_ids": list(payload.metadata.get("blocked_instance_ids", [])),
                 "queued_task_count": payload.queued_task_count,
+                "recovered_task_ids": recovered_task_ids,
             },
         )
         self._terminals[payload.terminal_id] = record
@@ -85,6 +87,9 @@ class TerminalRegistryService:
                 raise ValueError("snapshot terminal_id does not match sync target")
 
             terminal_instance_ids.add(snapshot.instance_id)
+            existing = self._instances.get(snapshot.instance_id)
+            metadata = dict(existing.metadata) if existing is not None else {}
+            metadata.update(dict(snapshot.metadata))
             record = InstanceRecord(
                 instance_id=snapshot.instance_id,
                 terminal_id=snapshot.terminal_id,
@@ -93,7 +98,7 @@ class TerminalRegistryService:
                 runtime_status=snapshot.runtime_status,
                 window_id=snapshot.window_id,
                 remark=snapshot.remark,
-                metadata=dict(snapshot.metadata),
+                metadata=metadata,
             )
             self._instances[snapshot.instance_id] = record
             synced.append(record)

@@ -91,6 +91,18 @@ def main() -> None:
                     requested_by="demo",
                 )
             )
+        client.create_task(
+            TaskAssignmentPayload(
+                task_id="task-filter-queue-01",
+                terminal_id="terminal-filter-01",
+                instance_id=None,
+                script_name="probe",
+                parameters={"target_handle": "filter_queue"},
+                requested_by="demo",
+                dispatch_mode="queue_pull",
+                queue_topic="terminal.dispatch.terminal-filter-01",
+            )
+        )
 
         loop = TerminalAgentLoop(
             runtime=TerminalRuntime(
@@ -111,6 +123,15 @@ def main() -> None:
             terminal_id="terminal-filter-01",
             wait_reason="slot_capacity_reached",
         )["items"]
+        filtered_queue_tasks = client.query_tasks(
+            terminal_id="terminal-filter-01",
+            dispatch_mode="queue_pull",
+        )["items"]
+        filtered_queue_dispatch = client.query_tasks(
+            terminal_id="terminal-filter-01",
+            queue_dispatch_status="queued",
+            queue_dispatch_accepted=True,
+        )["items"]
         filtered_terminals = client.list_terminals(
             max_parallel_tasks=1,
             min_active_task_count=0,
@@ -121,6 +142,9 @@ def main() -> None:
                 {
                     "filtered_task_ids": [item["task_id"] for item in filtered_tasks],
                     "filtered_wait_reasons": [item["parameters"].get("wait_reason") for item in filtered_tasks],
+                    "filtered_queue_task_ids": [item["task_id"] for item in filtered_queue_tasks],
+                    "filtered_queue_dispatch_modes": [item["parameters"].get("dispatch_mode") for item in filtered_queue_tasks],
+                    "filtered_queue_dispatch_ids": [item["task_id"] for item in filtered_queue_dispatch],
                     "filtered_terminal_ids": [item["terminal_id"] for item in filtered_terminals],
                     "filtered_terminal_max_parallel_tasks": [
                         item["metadata"].get("max_parallel_tasks") for item in filtered_terminals

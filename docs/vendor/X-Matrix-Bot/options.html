@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-Matrix 诊断工具</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 X-Matrix 诊断工具</h1>
+            <p class="subtitle">V11.7.0 | 网络连接与状态诊断</p>
+        </header>
+
+        <!-- NAS 连接测试 -->
+        <section class="card">
+            <h2>📡 NAS 连接测试</h2>
+            <div class="input-group">
+                <label for="nas-url">NAS 地址:</label>
+                <input type="text" id="nas-url" value="http://192.168.0.100:5678" placeholder="http://192.168.0.100:5678">
+                <button id="btn-test-nas" class="btn btn-primary">测试</button>
+            </div>
+            <div id="nas-result" class="result"></div>
+        </section>
+
+        <!-- SSE 连接测试 -->
+        <section class="card">
+            <h2>⚡ SSE 连接测试</h2>
+            <div class="input-group">
+                <label for="worker-id">Worker ID:</label>
+                <input type="text" id="worker-id" value="test-worker" placeholder="test-worker">
+                <button id="btn-test-sse" class="btn btn-primary">测试</button>
+                <button id="btn-stop-sse" class="btn btn-secondary" disabled>停止</button>
+            </div>
+            <div id="sse-result" class="result"></div>
+            <div id="sse-messages" class="message-log"></div>
+        </section>
+
+        <!-- 心跳状态 -->
+        <section class="card">
+            <h2>💓 心跳状态</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="label">最后心跳:</span>
+                    <span id="last-heartbeat" class="value">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Worker ID:</span>
+                    <span id="worker-id-display" class="value">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">引擎状态:</span>
+                    <span id="engine-status" class="value">-</span>
+                </div>
+            </div>
+            <button id="btn-refresh-heartbeat" class="btn btn-secondary">刷新</button>
+        </section>
+
+        <!-- 代理测试 -->
+        <section class="card">
+            <h2>🌐 代理测试</h2>
+            <div class="input-group">
+                <label for="proxy-url">代理地址:</label>
+                <input type="text" id="proxy-url" value="http://127.0.0.1:53394" placeholder="http://127.0.0.1:53394">
+            </div>
+            <div class="button-group">
+                <button id="btn-test-direct" class="btn btn-primary">测试直连</button>
+                <button id="btn-test-proxy" class="btn btn-primary">测试代理</button>
+            </div>
+            <div id="proxy-result" class="result"></div>
+        </section>
+
+        <!-- 日志查看器 -->
+        <section class="card">
+            <h2>📋 日志查看器</h2>
+            <div class="button-group">
+                <button id="btn-refresh-logs" class="btn btn-secondary">刷新日志</button>
+                <button id="btn-clear-logs" class="btn btn-secondary">清空日志</button>
+                <button id="btn-export-logs" class="btn btn-primary">导出日志</button>
+            </div>
+            <div id="log-viewer" class="log-viewer"></div>
+        </section>
+
+        <!-- 诊断报告 -->
+        <section class="card">
+            <h2>📊 诊断报告</h2>
+            <button id="btn-generate-report" class="btn btn-primary">生成诊断报告</button>
+            <button id="btn-copy-report" class="btn btn-secondary" disabled>复制报告</button>
+            <textarea id="diagnostic-report" class="report-area" readonly></textarea>
+        </section>
+
+        <footer>
+            <p>X-Matrix V11.7.0 | 诊断工具 | <button id="btn-test-all" class="btn btn-link">一键测试全部</button></p>
+        </footer>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>

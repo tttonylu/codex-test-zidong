@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日报表 - BPlus</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+  background: #f8fafc;
+  color: #1f2937;
+  padding: 24px;
+}
+.page-header { margin-bottom: 24px; }
+.page-header h1 { font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+.page-header p { font-size: 14px; color: #6b7280; margin-top: 4px; }
+.stats-bar { display: flex; gap: 16px; margin-bottom: 20px; }
+.stat-card {
+  flex: 1; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; text-align: center;
+}
+.stat-card .value { font-size: 28px; font-weight: 700; }
+.stat-card .label { font-size: 13px; color: #6b7280; margin-top: 4px; }
+.panel {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 20px; overflow: hidden;
+}
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid #f3f4f6;
+}
+.panel-header h2 { font-size: 16px; font-weight: 600; color: #374151; }
+.panel-header span { font-size: 13px; color: #9ca3af; }
+.panel-body { padding: 20px; }
+.panel-body.no-pad { padding: 0; }
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  text-align: left; padding: 12px 16px;
+  font-size: 12px; font-weight: 600; color: #6b7280;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 1px solid #e5e7eb; background: #f9fafb;
+}
+.table td {
+  padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #f3f4f6; color: #374151;
+}
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: #f9fafb; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; border: 1px solid #e5e7eb; background: #fff; color: #374151;
+  transition: all 0.15s;
+}
+.btn:hover { background: #f9fafb; border-color: #d1d5db; }
+.btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+.btn.primary:hover { background: #1d4ed8; }
+.btn.sm { padding: 5px 12px; font-size: 12px; }
+.btn.danger { background: #ef4444; border-color: #ef4444; color: #fff; }
+.btn.danger:hover { background: #dc2626; }
+.form-input {
+  padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #374151; transition: all 0.15s;
+}
+.form-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.empty {
+  text-align: center; padding: 48px 20px; color: #9ca3af; font-size: 14px;
+}
+.loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: #6b7280; gap: 12px; }
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid #e5e7eb; border-top-color: #3b82f6;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  color: #fff; background: #1e293b; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.3s ease;
+}
+.toast.error { background: #dc2626; }
+.toast.success { background: #16a34a; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@media (max-width: 768px) { .stats-bar { flex-direction: column; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="toast-container">
+    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">{{ t.message }}</div>
+  </div>
+
+  <div class="page-header">
+    <h1>日报表</h1>
+    <p>按账号查看每日动作统计（保留 15 天）</p>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="value" style="color:#2563eb">{{ aggregatedTotal }}</div>
+      <div class="label">今日总动作</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" style="color:#10b981">{{ aggregated.added }}</div>
+      <div class="label">关注</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" style="color:#f59e0b">{{ aggregated.ad }}</div>
+      <div class="label">私信</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" style="color:#ef4444">{{ aggregated.reject }}</div>
+      <div class="label">拉黑</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <label style="font-size:13px;font-weight:600;color:#374151">日期：</label>
+    <input type="date" class="form-input" v-model="selectedDate" />
+    <button class="btn primary sm" @click="fetchData">查询</button>
+    <button class="btn sm" @click="selectToday">今天</button>
+    <span style="font-size:13px;color:#9ca3af;margin-left:auto">{{ rows.length }} 条记录</span>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><h2>动作明细</h2><span>{{ selectedDate }}</span></div>
+    <div class="panel-body" style="padding:0">
+      <div v-if="loading" class="loading"><div class="spinner"></div><span>加载中...</span></div>
+      <table class="table" v-else-if="rows.length">
+        <thead>
+          <tr>
+            <th>账号</th><th style="text-align:center">关注</th><th style="text-align:center">私信</th>
+            <th style="text-align:center">破冰</th><th style="text-align:center">僵尸</th><th style="text-align:center">拉黑</th>
+            <th style="text-align:center">总计</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in rows" :key="row.account_id">
+            <td><strong>{{ row.account_id || '-' }}</strong></td>
+            <td style="text-align:center;color:#10b981">{{ row.added }}</td>
+            <td style="text-align:center;color:#f59e0b">{{ row.ad }}</td>
+            <td style="text-align:center;color:#3b82f6">{{ row.ice }}</td>
+            <td style="text-align:center;color:#9ca3af">{{ row.corpse }}</td>
+            <td style="text-align:center;color:#ef4444">{{ row.reject }}</td>
+            <td style="text-align:center;font-weight:600">{{ row.total }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty" v-else><p>{{ selectedDate ? '该日期暂无数据' : '请选择日期查询' }}</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = '';
+const TOKEN = 'xm2026_a1b2c3d4e5';
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const selectedDate = ref('');
+    const rows = ref([]);
+    const loading = ref(false);
+    const toasts = ref([]);
+
+    function todayStr() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+
+    function toast(msg, type = '') {
+      const id = Date.now();
+      toasts.value.push({ id, message: msg, type });
+      setTimeout(() => toasts.value = toasts.value.filter(t => t.id !== id), 3000);
+    }
+
+    // Aggregate per-worker
+    function aggregateStats(items) {
+      const map = {};
+      for (const s of items) {
+        const aid = s.account_id || '-';
+        if (!map[aid]) map[aid] = { account_id: aid, added: 0, ice: 0, ad: 0, corpse: 0, reject: 0, total: 0 };
+        const action = s.action_type;
+        if (action in map[aid]) map[aid][action] += s.success_count || 0;
+        map[aid].total += s.success_count || 0;
+      }
+      return Object.values(map);
+    }
+
+    const aggregated = computed(() => {
+      const agg = { added: 0, ice: 0, ad: 0, corpse: 0, reject: 0 };
+      for (const r of rows.value) {
+        agg.added += r.added;
+        agg.ice += r.ice;
+        agg.ad += r.ad;
+        agg.corpse += r.corpse;
+        agg.reject += r.reject;
+      }
+      return agg;
+    });
+
+    const aggregatedTotal = computed(() => {
+      const a = aggregated.value;
+      return a.added + a.ice + a.ad + a.corpse + a.reject;
+    });
+
+    function selectToday() { selectedDate.value = todayStr(); fetchData(); }
+
+    async function fetchData() {
+      if (!selectedDate.value) return;
+      loading.value = true;
+      try {
+        const r = await fetch(`${API_BASE}/plugin/stats/daily?stat_date=${selectedDate.value}`, { headers: { 'X-API-Token': TOKEN } });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        rows.value = aggregateStats(data.items || []);
+      } catch (e) {
+        console.error('[Reports] fetch error:', e);
+        toast('获取数据失败', 'error');
+      } finally { loading.value = false; }
+    }
+
+    onMounted(() => {
+      selectedDate.value = todayStr();
+      fetchData();
+    });
+
+    return { selectedDate, rows, loading, toasts, aggregated, aggregatedTotal, selectToday, fetchData };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

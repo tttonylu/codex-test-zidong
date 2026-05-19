@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>X-Matrix</title>
+<style>
+:root{--bg:#1c2732;--card:#253341;--border:#38444d;--blue:#1d9bf0;--green:#00ba7c;--red:#f91880;--orange:#ffd700;--gray:#8899a6;--text:#e7e9ea}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;font-size:12px;width:230px;min-height:150px}
+.p{padding:10px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+header h1{font-size:14px;font-weight:600}
+.ver{font-size:10px;color:var(--gray);background:var(--card);padding:1px 5px;border-radius:3px}
+.rs{display:flex;align-items:center;gap:4px;justify-content:center;margin-bottom:10px;padding:4px;background:var(--card);border-radius:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gray);display:inline-block}
+.dot.g{background:var(--green);box-shadow:0 0 4px var(--green)}
+.dot.r{background:var(--red);box-shadow:0 0 4px var(--red)}
+.dot.y{background:var(--orange);box-shadow:0 0 4px var(--orange)}
+.lb{font-size:10px;color:var(--gray);margin-right:4px}
+.act{display:flex;gap:6px}
+.btn{flex:1;padding:6px;border:none;border-radius:5px;font-size:11px;cursor:pointer}
+.bp{background:var(--blue);color:white}
+.bs{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.ft{text-align:center;padding-top:6px;margin-top:6px;border-top:1px solid var(--border)}
+.ts{font-size:10px;color:var(--gray)}
+</style></head>
+<body><div class="p">
+<header><h1>X-Matrix Bot</h1><span class="ver">V11.12.1</span></header>
+<div class="rs"><span class="dot" id="d0"></span><span class="lb">NAS</span><span class="dot" id="d1"></span><span class="lb">桥接</span><span class="dot" id="d2"></span><span class="lb">实例</span></div>
+<div class="act"><button id="b0" class="btn bp">刷新</button><button id="b1" class="btn bp">同步名称</button><button id="b2" class="btn bs">控制台</button></div>
+<div class="act" style="margin-top:6px;"><button id="b3" class="btn" style="flex:1;background:#00ba7c;color:white;">▶ 启动引擎</button><button id="b4" class="btn" style="flex:1;background:#f91880;color:white;">■ 停止</button></div>
+<div class="ft"><span class="ts" id="ts">-</span></div>
+</div>
+<script src="popup.js"></script>
+</body></html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPlus 运营控制中心</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+            background: #f8fafc;
+            color: #1f2937;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .top-nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 56px;
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+            letter-spacing: 1px;
+        }
+        
+        .nav-brand .logo {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 16px; font-weight: 700;
+        }
+        
+        .nav-brand .version {
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 400;
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+        }
+        
+        .nav-link {
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.15s;
+            border: none;
+            background: transparent;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .nav-link:hover {
+            color: #374151;
+            background: #f3f4f6;
+        }
+        
+        .nav-link.active {
+            color: #2563eb;
+            background: #eff6ff;
+            font-weight: 600;
+        }
+        
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .time-display {
+            font-size: 13px;
+            color: #9ca3af;
+            font-variant-numeric: tabular-nums;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+        }
+        
+        .refresh-btn {
+            width: 32px; height: 32px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: #6b7280;
+            transition: all 0.15s;
+        }
+        
+        .refresh-btn:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .main-frame {
+            position: fixed;
+            top: 56px; left: 0; right: 0; bottom: 0;
+            border: none;
+            width: 100%;
+            height: calc(100vh - 56px);
+            background: #f8fafc;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .top-nav { padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <div class="logo">B+</div>
+            <span>BPlus</span>
+            <span class="version">V1.0</span>
+        </div>
+        <div class="nav-links">
+            <a class="nav-link active" href="/static/overview.html" data-page="overview">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                运营总览
+            </a>
+            <a class="nav-link" href="/static/instances.html" data-page="instances">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                实例管理
+            </a>
+            <a class="nav-link" href="/static/reports.html" data-page="reports">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                日报表
+            </a>
+            <a class="nav-link" href="/static/ammo.html" data-page="ammo">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                弹药库
+            </a>
+            <a class="nav-link" href="/static/blacklist.html" data-page="blacklist">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                黑名单
+            </a>
+        </div>
+        <div class="nav-actions">
+            <span class="time-display" id="clock">--:--:--</span>
+            <button class="refresh-btn" onclick="refreshFrame()" title="刷新当前页面">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+        </div>
+    </nav>
+    
+    <iframe id="mainFrame" class="main-frame" src="/static/overview.html"></iframe>
+    
+    <script>
+        function updateClock() {
+            document.getElementById('clock').textContent = 
+                new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+        
+        const navLinks = document.querySelectorAll('.nav-link');
+        const mainFrame = document.getElementById('mainFrame');
+        
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const href = link.getAttribute('href');
+                const page = link.dataset.page;
+                
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                
+                mainFrame.src = href;
+                
+                try { localStorage.setItem('bplus_page', page); } catch(e) {}
+            });
+        });
+        
+        try {
+            const saved = localStorage.getItem('bplus_page');
+            if (saved) {
+                const link = document.querySelector(`[data-page="${saved}"]`);
+                if (link) {
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    mainFrame.src = link.getAttribute('href');
+                }
+            }
+        } catch(e) {}
+        
+        function refreshFrame() {
+            mainFrame.contentWindow.location.reload();
+        }
+    </script>
+</body>
+</html>

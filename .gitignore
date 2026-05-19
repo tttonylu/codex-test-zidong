@@ -14,3 +14,8 @@ nas_control_plane/state*.sqlite3-*
 # OS/editor files
 .DS_Store
 Thumbs.db
+
+# mem0 workspace memory store
+.mem0/qdrant/
+.mem0/history.db
+.mem0/*.py

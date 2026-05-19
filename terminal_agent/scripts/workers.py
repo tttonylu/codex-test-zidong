@@ -68,7 +68,7 @@ class ScriptWorkerRegistry:
         task = execution.context.task
 
         try:
-            outcome = self._dispatch(execution.context)
+            outcome = self._dispatch_action_plan(execution.context)
             if (
                 task.close_after_actions
                 and task.instance_id
@@ -90,10 +90,13 @@ class ScriptWorkerRegistry:
                 final=outcome.final if outcome.final is not None else True,
                 details={
                     **outcome.details,
+                    "queue_topic": task.queue_topic,
                     "step_count": outcome.step_count,
                     "steps": list(outcome.steps),
                 },
                 emitted_at=datetime.utcnow(),
+                delivery_id=task.delivery_id,
+                claim_lease_id=task.claim_lease_id,
             )
         except Exception as exc:
             error_code = _classify_worker_failure(task.script_name, exc)
@@ -112,13 +115,104 @@ class ScriptWorkerRegistry:
                     "error": str(exc),
                     "instance_id": task.instance_id,
                     "parameters": dict(task.parameters),
+                    "queue_topic": task.queue_topic,
                     "step_count": 0,
                 },
                 emitted_at=datetime.utcnow(),
+                delivery_id=task.delivery_id,
+                claim_lease_id=task.claim_lease_id,
             )
 
         execution.result = result
         return execution
+
+    def _dispatch_action_plan(self, context: WorkerContext) -> WorkerOutcome:
+        """Execute one ordered action plan as a single business task."""
+
+        task = context.task
+        action_plan = list(task.parameters.get("action_plan") or [])
+        if not action_plan:
+            return self._dispatch(context)
+
+        combined_steps: list[dict[str, Any]] = []
+        action_results: list[dict[str, Any]] = []
+        final_summary = "action plan executed"
+        for index, item in enumerate(action_plan, start=1):
+            action_name = str(item.get("action") or "").strip().lower()
+            if not action_name:
+                raise ValueError(f"invalid action_plan item at index {index}")
+            scripted_task = self._task_for_action(task, action_name)
+            action_context = WorkerContext(
+                task=scripted_task,
+                terminal_id=context.terminal_id,
+                hostname=context.hostname,
+                bitbrowser_client=context.bitbrowser_client,
+                metadata={
+                    **dict(context.metadata),
+                    "action_name": action_name,
+                    "action_index": index,
+                },
+            )
+            outcome = self._dispatch(action_context)
+            combined_steps.extend(outcome.steps)
+            action_results.append(
+                {
+                    "index": index,
+                    "action": action_name,
+                    "summary": outcome.summary,
+                    "details": dict(outcome.details),
+                    "error_code": outcome.error_code,
+                    "error_message": outcome.error_message,
+                    "retryable": outcome.retryable,
+                    "final": outcome.final,
+                }
+            )
+            final_summary = f"{action_name} executed"
+            if outcome.error_code or outcome.error_message:
+                return WorkerOutcome(
+                    summary=f"{action_name} failed",
+                    details={
+                        "action_results": action_results,
+                        "failed_action": action_name,
+                    },
+                    error_code=outcome.error_code,
+                    error_message=outcome.error_message,
+                    retryable=outcome.retryable,
+                    final=outcome.final,
+                    step_count=len(combined_steps),
+                    steps=combined_steps,
+                )
+
+        return WorkerOutcome(
+            summary=final_summary,
+            details={
+                "action_results": action_results,
+                "action_plan_completed": True,
+            },
+            step_count=len(combined_steps),
+            steps=combined_steps,
+        )
+
+    def _task_for_action(self, task: TaskAssignmentPayload, action_name: str) -> TaskAssignmentPayload:
+        """Build one worker-facing task view for a single action within a business task."""
+
+        script_name = "follow" if action_name == "follow" else "chat"
+        return TaskAssignmentPayload(
+            task_id=task.task_id,
+            terminal_id=task.terminal_id,
+            instance_id=task.instance_id,
+            script_name=script_name,
+            parameters=dict(task.parameters),
+            priority=task.priority,
+            retry_limit=task.retry_limit,
+            close_after_actions=False,
+            requested_by=task.requested_by,
+            metadata=dict(task.metadata),
+            dispatch_mode=task.dispatch_mode,
+            queue_topic=task.queue_topic,
+            delivery_id=task.delivery_id,
+            claim_lease_id=task.claim_lease_id,
+        )
 
     def execute(
         self,
